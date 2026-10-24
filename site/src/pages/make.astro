@@ -212,7 +212,7 @@ const colours = [
 
 <script>
   import {
-    getClaim, getTweet, uploadImage, productByKey, dollars, isTweetUrl, type ProductKey,
+    getClaim, getTweet, uploadImage, productByKey, dollars, isTweetUrl, type ProductKey, type TweetInfo,
   } from '../lib/api';
   import { buildMetadata, makeOrderRef, mountCheckout, sourceFromUrl, type MountedCheckout } from '../lib/checkout';
   import { mountPreviewSafe, debounce, type PreviewHandle, type PreviewParams } from '../components/preview';
@@ -226,7 +226,7 @@ const colours = [
   const qs = new URLSearchParams(location.search);
   const state = {
     product: 'milestone' as ProductKey,
-    tweet: { text: '', handle: '', author_name: '', date: '' },
+    tweet: { text: '', handle: '', author_name: '', date: '', avatar_url: '', verified: false, replies: '', created_at: '' },
     upload_id: '',
     upload_name: '',
     image_url: '',
@@ -252,17 +252,46 @@ const colours = [
 
   // ---------- preview ----------
   let preview: PreviewHandle | null = null;
+  // Until something is typed, the preview shows a worked example so it already looks like the real thing.
+  const SAMPLE = {
+    tweet: { author_name: 'Your Name', handle: 'you', text: 'Paste your tweet link and it shows up here, laid out exactly like the post: name, handle, the words, the date and the likes.', likes: '1,204', date: '9:41 AM · Oct 24, 2026' },
+    milestone: { number: '10,000', label: 'subscribers', name: 'Your channel', date: 'Oct 2026' },
+    team: { team: 'Your Team', subline: 'Winners, Zero-Human Hackathon 2026' },
+  };
+  /** X-style timestamp in the viewer's time zone: "6:45 PM · Oct 26, 2022". */
+  function xDate(iso: string, fallback: string) {
+    const d = new Date(iso);
+    if (!iso || Number.isNaN(d.getTime())) return fallback;
+    const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const day = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${time} · ${day}`;
+  }
+  /** The card shows media, not its link: drop trailing pic.twitter.com / t.co media links from the text. */
+  function cardText(t: string) {
+    return t.replace(/(\s*(https?:\/\/)?(pic\.twitter\.com|pic\.x\.com)\/\S+)+\s*$/i, '').trim();
+  }
   function previewParams(): PreviewParams {
     const c = colour();
     switch (state.product) {
-      case 'tweet':
-        return { product: 'tweet', colour: c, author_name: state.tweet.author_name, handle: state.tweet.handle, text: state.tweet.text, likes: val('f-likes'), date: state.tweet.date };
-      case 'milestone':
-        return { product: 'milestone', colour: c, number: val('f-number'), label: val('f-label'), name: val('f-name'), date: val('f-date') };
+      case 'tweet': {
+        const t = state.tweet;
+        if (!t.text && !t.handle) return { product: 'tweet', colour: c, ...SAMPLE.tweet, likes: val('f-likes') || SAMPLE.tweet.likes };
+        return {
+          product: 'tweet', colour: c, author_name: t.author_name, handle: t.handle, text: cardText(t.text), likes: val('f-likes'),
+          date: xDate(t.created_at, t.date), avatar_url: t.avatar_url || undefined, verified: t.verified, replies: t.replies,
+        };
+      }
+      case 'milestone': {
+        const m = { number: val('f-number'), label: val('f-label'), name: val('f-name'), date: val('f-date') };
+        const empty = !m.number && !m.label && !m.name && !m.date;
+        return { product: 'milestone', colour: c, ...(empty ? SAMPLE.milestone : m) };
+      }
       case 'fullcolour':
         return { product: 'fullcolour', colour: 'white', name: val('f-name-fc'), image_url: state.image_url || undefined };
-      case 'team':
-        return { product: 'team', colour: c, team: val('f-team'), subline: val('f-subline') };
+      case 'team': {
+        const tm = { team: val('f-team'), subline: val('f-subline') };
+        return { product: 'team', colour: c, ...(!tm.team && !tm.subline ? SAMPLE.team : tm) };
+      }
     }
   }
   const pushPreview = debounce(() => preview?.update(previewParams()), 250);
@@ -386,9 +415,13 @@ const colours = [
     const status = $('tweet-status');
     status.textContent = '…';
     try {
-      const t = await getTweet(url);
+      const t = (await getTweet(url)) as TweetInfo & { avatar_url?: string; verified?: boolean; likes?: number; replies?: number; created_at?: string };
       if (!t.ok) throw new Error('not ok');
-      state.tweet = { text: t.text ?? '', handle: (t.handle ?? '').replace(/^@/, ''), author_name: t.author_name ?? '', date: t.date ?? '' };
+      state.tweet = {
+        text: t.text ?? '', handle: (t.handle ?? '').replace(/^@/, ''), author_name: t.author_name ?? '', date: t.date ?? '',
+        avatar_url: t.avatar_url ?? '', verified: t.verified === true, replies: typeof t.replies === 'number' ? String(t.replies) : '', created_at: t.created_at ?? '',
+      };
+      if (typeof t.likes === 'number' && !val('f-likes')) setVal('f-likes', t.likes.toLocaleString('en-US'));
       const found = $('tweet-found');
       found.textContent = `${state.tweet.author_name} @${state.tweet.handle}\n${state.tweet.text}`;
       found.hidden = false;
@@ -519,7 +552,7 @@ const colours = [
         if (c.product === 'tweet') {
           setVal('f-tweet-url', c.tweet_url);
           setVal('f-likes', c.likes);
-          state.tweet = { text: c.text ?? '', handle: (c.handle ?? '').replace(/^@/, ''), author_name: c.name ?? '', date: c.date ?? '' };
+          state.tweet = { text: c.text ?? '', handle: (c.handle ?? '').replace(/^@/, ''), author_name: c.name ?? '', date: c.date ?? '', avatar_url: '', verified: false, replies: '', created_at: '' };
           if (c.tweet_url) lastTweet = c.tweet_url;
           if (state.tweet.text) {
             const found = $('tweet-found');

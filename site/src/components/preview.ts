@@ -13,6 +13,10 @@ export interface PreviewParams {
   team?: string;
   subline?: string;
   image_url?: string;
+  avatar_url?: string;
+  replies?: string;
+  reposts?: string;
+  verified?: boolean;
   founding?: string;
 }
 export interface PreviewHandle {

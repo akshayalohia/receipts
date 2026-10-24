@@ -19,6 +19,13 @@ export interface PreviewParams {
   team?: string;
   subline?: string;
   image_url?: string;
+  /** Tweet Trophy: author avatar (CORS-enabled URL). Rendered as a height-map relief; initial letter if absent. */
+  avatar_url?: string;
+  /** Tweet Trophy: reply / repost counts when known (only real numbers; omitted otherwise). */
+  replies?: string | number;
+  reposts?: string | number;
+  /** Tweet Trophy: show the verified badge next to the name. */
+  verified?: boolean;
   /** Founding Edition number, e.g. "7" or "007". Shown as "#007" on the back. */
   founding?: string;
 }

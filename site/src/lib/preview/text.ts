@@ -140,7 +140,7 @@ export function fitBlock(font: Font, text: string, maxWidth: number, maxHeight: 
 
 export type Align = 'left' | 'center' | 'right';
 
-/** Raised text mesh: baseline at y, extruded from z=0 to z=depth. Returns null for empty strings. */
+/** Raised text mesh: baseline at y, extruded from z=z0 to z=z0+depth with a hairline bevel. Returns null for empty strings. */
 export function textMesh(
   font: Font,
   s: string,
@@ -150,15 +150,29 @@ export function textMesh(
   x: number,
   y: number,
   align: Align = 'left',
+  z0 = 0,
 ): Mesh | null {
   const str = s.trim();
   if (!str || cap <= 0) return null;
   const size = cap / capRatio(font);
-  const geo = new TextGeometry(str, { font, size, depth, curveSegments: 5, bevelEnabled: false });
+  // Bevel scales with the glyph so small text stays crisp and big numbers catch a highlight on the edge.
+  const b = Math.min(depth * 0.2, Math.max(0.04, cap * 0.012));
+  const geo = new TextGeometry(str, {
+    font,
+    size,
+    depth: Math.max(0.01, depth - 2 * b),
+    curveSegments: cap > 8 ? 8 : 5,
+    bevelEnabled: true,
+    bevelThickness: b,
+    bevelSize: b * 0.7,
+    bevelOffset: -b * 0.7,
+    bevelSegments: 1,
+  });
   const w = measure(font, str, cap);
   const dx = align === 'center' ? -w / 2 : align === 'right' ? -w : 0;
-  geo.translate(x + dx, y, 0);
+  geo.translate(x + dx, y, z0 + b);
   const mesh = new Mesh(geo, material);
   mesh.castShadow = true;
+  mesh.receiveShadow = true;
   return mesh;
 }

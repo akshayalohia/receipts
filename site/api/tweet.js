@@ -82,6 +82,42 @@ export function parseOembed(data, fallbackHandle) {
   return { handle, author_name, text: text.slice(0, 1000), date };
 }
 
+/** Token the public embed widget sends to the syndication CDN (any non-empty value works today). */
+export function syndicationToken(id) {
+  return ((Number(id) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, "") || "a";
+}
+
+/**
+ * Pull the extras the oEmbed endpoint lacks (avatar, real like/reply counts, verified, timestamp) from the
+ * public syndication JSON the embed widget uses. Best effort: returns only fields that are really present.
+ */
+export function parseSyndication(data) {
+  const out = {};
+  if (!data || typeof data !== "object") return out;
+  const user = data.user && typeof data.user === "object" ? data.user : null;
+  const avatar = user && typeof user.profile_image_url_https === "string" ? user.profile_image_url_https : "";
+  if (/^https:\/\/pbs\.twimg\.com\//.test(avatar)) out.avatar_url = avatar.replace(/_normal(\.\w+)$/, "_400x400$1");
+  if (user && (user.is_blue_verified === true || user.verified === true)) out.verified = true;
+  if (Number.isInteger(data.favorite_count) && data.favorite_count >= 0) out.likes = data.favorite_count;
+  if (Number.isInteger(data.conversation_count) && data.conversation_count >= 0) out.replies = data.conversation_count;
+  if (Number.isInteger(data.retweet_count) && data.retweet_count >= 0) out.reposts = data.retweet_count;
+  if (typeof data.created_at === "string" && !Number.isNaN(Date.parse(data.created_at))) out.created_at = new Date(data.created_at).toISOString();
+  return out;
+}
+
+async function fetchSyndication(id) {
+  try {
+    const res = await fetch(
+      `https://cdn.syndication.twimg.com/tweet-result?id=${id}&lang=en&token=${syndicationToken(id)}`,
+      { headers: { accept: "application/json" }, signal: AbortSignal.timeout(3500) },
+    );
+    if (!res.ok) return {};
+    return parseSyndication(await res.json());
+  } catch {
+    return {};
+  }
+}
+
 export async function GET(request) {
   const reqUrl = new URL(request.url);
   const parsed = parseTweetUrl(reqUrl.searchParams.get("url"));
@@ -90,8 +126,10 @@ export async function GET(request) {
   const oembedUrl =
     "https://publish.twitter.com/oembed?omit_script=1&url=" + encodeURIComponent(parsed.url);
   let res;
+  const oembedP = fetch(oembedUrl, { headers: { accept: "application/json" } });
+  const extrasP = fetchSyndication(parsed.id);
   try {
-    res = await fetch(oembedUrl, { headers: { accept: "application/json" } });
+    res = await oembedP;
   } catch {
     return error(502, "tweet lookup failed");
   }
@@ -105,6 +143,7 @@ export async function GET(request) {
     return error(502, "tweet lookup failed");
   }
   const info = parseOembed(data, parsed.handle);
-  // Never returns like counts (oEmbed does not provide them anyway).
-  return json({ ok: true, ...info, url: parsed.url });
+  // Counts/avatar come only from Twitter's own syndication data; never estimated.
+  const extras = await extrasP;
+  return json({ ok: true, ...info, url: parsed.url, ...extras });
 }
