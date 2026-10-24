@@ -12,19 +12,36 @@ function isPaid(p) {
   return PAID.has(s) || PAID.has(sub);
 }
 
-// TODO(verify-whop-amounts): Whop v1 returns amounts as dollar numbers (e.g. 29.0).
-// We convert to cents. If a payment exposes an explicit *_cents field we prefer it.
+// Whop v1 (verified on a live payment, Oct 24 2026) returns money as objects:
+// total: { currency: "usd", amount: "39.00", decimals: 2 }, refunded_amount: { amount: "0.00" }.
+// Older shapes (plain dollar numbers, *_cents fields) are still accepted.
+function moneyCents(v) {
+  if (v == null) return null;
+  if (typeof v === "object") {
+    const n = Number(v.amount);
+    if (!Number.isFinite(n)) return null;
+    const dec = Number.isFinite(Number(v.decimals)) ? Number(v.decimals) : 2;
+    return Math.round(n * 10 ** dec * (100 / 10 ** dec));
+  }
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.round(n * 100) : null;
+}
+
 export function paymentCents(p) {
+  let gross = null;
   for (const k of ["final_amount_cents", "total_cents", "amount_cents"]) {
     const v = Number(p[k]);
-    if (p[k] != null && Number.isFinite(v)) return Math.round(v);
+    if (p[k] != null && Number.isFinite(v)) { gross = Math.round(v); break; }
   }
-  for (const k of ["final_amount", "total", "amount"]) {
-    if (p[k] == null) continue;
-    const v = Number(p[k]);
-    if (Number.isFinite(v)) return Math.round(v * 100);
+  if (gross == null) {
+    for (const k of ["final_amount", "total", "amount"]) {
+      const c = moneyCents(p[k]);
+      if (c != null) { gross = c; break; }
+    }
   }
-  return 0;
+  if (gross == null) return 0;
+  const refunded = moneyCents(p.refunded_amount) || 0;
+  return Math.max(0, gross - refunded);
 }
 
 function listFrom(body) {
