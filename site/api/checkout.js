@@ -3,7 +3,7 @@
 // for exactly that price. The browser mounts Whop's embedded checkout with the returned plan id.
 // Custom orders are recorded with full metadata; they are NOT auto-sent to a supplier.
 import { json, error } from "./_lib.js";
-import { decodeJob, cachedGeom, saveGeom, priceFor, jobStatus, makePreview, SIZES, BASES, COLOURS } from "./_render.js";
+import { decodeJob, cachedGeom, saveGeom, priceFor, jobStatus, makePreview, resolveSize, DEFAULT_SIZE, BASES, COLOURS } from "./_render.js";
 
 export async function POST(request) {
   const env = process.env;
@@ -11,7 +11,7 @@ export async function POST(request) {
   const b = await request.json().catch(() => null);
   const job = b?.id ? decodeJob(String(b.id)) : null;
   if (!job) return error(400, "unknown render");
-  const size = SIZES.some((s) => s.id === b.size) ? b.size : "M";
+  const size = resolveSize(b.size) ? String(b.size) : DEFAULT_SIZE; // legacy S/M/L still resolve
   const base = BASES.includes(b.base) ? b.base : "round";
   const colour = Object.hasOwn(COLOURS, b.colour) ? b.colour : "grey";
   let cached = await cachedGeom(job);
@@ -44,7 +44,7 @@ export async function POST(request) {
       plan_type: "one_time",
       release_method: "buy_now",
       visibility: "hidden",
-      initial_price: q.price_cents / 100,
+      initial_price: Number((q.price_cents / 100).toFixed(2)), // dollars, e.g. 17.99
       currency: "usd",
       title,
       description: `Custom figure, ${q.heightMm} mm, ${colour} PETG, ${base} base`,

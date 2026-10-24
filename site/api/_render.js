@@ -215,19 +215,45 @@ export async function makePreview(raw) {
 }
 
 // ---------- pricing ----------
-// Estimate of the supplier's cost (Slant 3D-style PETG FDM), then our markup. Every constant is env-tunable.
+// Cost-plus: estimate what one print costs us (Slant 3D-style PETG FDM + shipping + the render itself),
+// add PRICE_MARKUP on top, then gross up for Whop's fee so the markup survives it. Every constant is env-tunable.
+// Heights are the figure itself (the plinth adds a few mm under it). Slant 3D's max build height is 220 mm.
 export const SIZES = [
-  { id: "S", label: "Desk", heightMm: 75 },
-  { id: "M", label: "Shelf", heightMm: 100 },
-  { id: "L", label: "Statement", heightMm: 150 },
+  { id: "40", label: "Mini", heightMm: 40 },
+  { id: "50", label: "Small", heightMm: 50 },
+  { id: "65", label: "Desk", heightMm: 65 },
+  { id: "80", label: "Classic", heightMm: 80 },
+  { id: "100", label: "Shelf", heightMm: 100 },
+  { id: "150", label: "Statement", heightMm: 150 },
+  { id: "200", label: "Showpiece", heightMm: 200 },
 ];
+export const DEFAULT_SIZE = "80";
+// Old ids from the S/M/L era: old links and paid orders (metadata size "S", height_mm 75) must keep resolving.
+const LEGACY_SIZES = {
+  S: { id: "S", label: "Desk", heightMm: 75 },
+  M: { id: "M", label: "Shelf", heightMm: 100 },
+  L: { id: "L", label: "Statement", heightMm: 150 },
+};
+/** Size record for a current or legacy id, else null. */
+export function resolveSize(id) {
+  const k = String(id ?? "");
+  return SIZES.find((s) => s.id === k) || (Object.hasOwn(LEGACY_SIZES, k) ? LEGACY_SIZES[k] : null);
+}
 export const BASES = ["round", "square", "none"];
 export const COLOURS = { black: "#1d1d1f", white: "#f2f1ed", grey: "#9a9a9a", red: "#c3302c", blue: "#2554c7", green: "#2d8550", gold: "#c9a24b" };
 
 const num = (k, d) => (Number.isFinite(Number(process.env[k])) && process.env[k] !== "" && process.env[k] != null ? Number(process.env[k]) : d);
 
+/** Shipping by figure height. PRINT_SHIPPING_USD, if set, overrides the tiers with one flat rate. */
+function shippingUsd(H) {
+  if (process.env.PRINT_SHIPPING_USD) return num("PRINT_SHIPPING_USD", 7);
+  if (H <= 100) return num("PRINT_SHIP_S", 5.5);
+  if (H <= 150) return num("PRINT_SHIP_M", 7);
+  return num("PRINT_SHIP_L", 9);
+}
+
 export function priceFor(geom, sizeId, base) {
-  const size = SIZES.find((s) => s.id === sizeId) || SIZES[1];
+  const size = resolveSize(sizeId) || resolveSize(DEFAULT_SIZE);
   const H = size.heightMm;
   const [w, h, d] = geom.size;
   const s = H / Math.max(h, 1e-9);
@@ -241,13 +267,26 @@ export function priceFor(geom, sizeId, base) {
   }
   const cm3 = vol / 1000;
   const grams = cm3 * num("PRINT_DENSITY_G_CM3", 1.27) * num("PRINT_FILL_FRACTION", 0.4); // walls + ~15% infill
-  const cost = num("PRINT_BASE_FEE_USD", 5) + grams * num("PRINT_USD_PER_GRAM", 0.1) + num("PRINT_SHIPPING_USD", 7);
-  const raw = Math.max(num("PRICE_MIN_USD", 29), cost * num("PRICE_MARKUP", 2.5));
-  const dollars = Math.ceil((raw + 1) / 10) * 10 - 1; // $29, $39, $49 ...
+  // All money below in integer cents so the breakdown adds up exactly.
+  const cents = (usd) => Math.round(usd * 100);
+  const print = cents(num("PRINT_SETUP_USD", 2.5) + grams * num("PRINT_USD_PER_GRAM", 0.05));
+  const ship = cents(shippingUsd(H));
+  const render = cents(num("RENDER_COST_USD", 0.25));
+  const cost = print + ship + render;
+  const markup = num("PRICE_MARKUP", 0.9);
+  const feePct = num("WHOP_FEE_PCT", 0.03);
+  const feeFixed = cents(num("WHOP_FEE_FIXED_USD", 0.3));
+  // price = cost*(1+m) + fees, fees = pct*price + fixed  =>  price = (cost*(1+m) + fixed) / (1 - pct)
+  const target = Math.max(cents(num("PRICE_MIN_USD", 12)), (cost * (1 + markup) + feeFixed) / (1 - feePct));
+  // Charm price: the next whole dollar minus a cent ($17.99), never below the target.
+  const price_cents = Math.ceil((Math.ceil(target) + 1) / 100) * 100 - 1;
+  const fees = Math.round(price_cents * feePct) + feeFixed;
   return {
-    size: size.id, heightMm: H, base,
+    size: size.id, label: size.label, heightMm: H, base,
     volume_cm3: Math.round(cm3), grams: Math.round(grams),
-    est_cost_cents: Math.round(cost * 100), price_cents: dollars * 100,
+    est_print_cents: print, est_ship_cents: ship, est_render_cents: render, est_fees_cents: fees,
+    est_cost_cents: cost + fees, margin_cents: price_cents - cost - fees,
+    price_cents,
   };
 }
 

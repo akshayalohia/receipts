@@ -108,6 +108,23 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .stage[data-ready='1'] .stage-empty { display: none; }
 
+/* Render progress (src/lib/render-progress.ts) */
+.rprog { display: grid; gap: 0.5rem; padding: 0.875rem 1rem 1rem; border: 2px solid var(--ink); background: var(--paper-hi); }
+.rprog-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.rprog-label { font: 700 1rem/1.3 var(--mono); }
+.rprog-time { font: 400 0.8125rem/1 var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.rprog-track { position: relative; height: 14px; border: 2px solid var(--ink); background: var(--paper); overflow: hidden; }
+.rprog-fill { height: 100%; width: 0; background: var(--red); transition: width 220ms linear; }
+.rprog.is-done .rprog-fill { transition-duration: 300ms; }
+.rprog-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; font: 400 0.75rem/1.4 var(--mono); color: var(--ink-2); }
+.rprog-steps li span { display: inline-grid; place-items: center; width: 1.35em; height: 1.35em; border: 1px solid currentColor; border-radius: 999px; font-size: 0.85em; }
+.rprog-steps li.is-active { color: var(--ink); font-weight: 700; }
+.rprog-steps li.is-active span { background: var(--red); border-color: var(--red); color: var(--red-ink); }
+.rprog-steps li.is-done { color: var(--ink); }
+.rprog-steps li.is-done span { background: var(--ink); color: var(--paper); }
+.rprog-note { font: 400 0.8125rem/1.4 var(--mono); }
+.rprog-note.is-cold { color: var(--red); }
+
 /* Footer */
 .footer { border-top: 2px solid var(--ink); margin-top: 4rem; padding-block: 1.25rem 2rem; font: 400 0.875rem/1.4 var(--mono); }
 .footer nav { display: flex; flex-wrap: wrap; gap: 0 1.25rem; align-items: center; }

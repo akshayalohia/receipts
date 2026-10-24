@@ -38,6 +38,7 @@ const faq = [
           <input id="hero-photo" type="file" accept="image/png,image/jpeg,image/webp" hidden />
           <button class="btn btn-primary" id="hero-go" type="submit">Make my 3D model</button>
         </div>
+        <div id="hero-progress" hidden></div>
         <div class="chips" id="chips">
           <button type="button" class="chip">a tiny astronaut cat planting a flag on a pizza</button>
           <button type="button" class="chip">our startup mascot, a robot holding a trophy</button>
@@ -178,6 +179,7 @@ const faq = [
 <script>
   import { isTweetUrl } from '../lib/api';
   import { loadPreview, type PreviewParams } from '../components/preview';
+  import { mountRenderProgress } from '../lib/render-progress';
 
   // Hero: describe / photo -> custom render; tweet link -> Tweet Trophy builder
   const form = document.getElementById('hero-form') as HTMLFormElement;
@@ -188,6 +190,7 @@ const faq = [
   const msg = document.getElementById('hero-msg')!;
   const stage = document.getElementById('hero-stage')!;
   const conceptImg = document.getElementById('hero-concept') as HTMLImageElement;
+  const progress = mountRenderProgress(document.getElementById('hero-progress')!);
   photo.addEventListener('change', () => {
     document.getElementById('photo-label')!.textContent = photo.files?.[0] ? `Photo: ${photo.files[0].name.slice(0, 24)}` : '+ Add a photo';
   });
@@ -205,11 +208,14 @@ const faq = [
     if (!q && !file) { err.textContent = 'Describe what you want, or add a photo.'; return; }
     if (file && file.size > 4 * 1024 * 1024) { err.textContent = 'Photos must be under 4 MB.'; return; }
     go.disabled = true;
-    const t0 = Date.now();
-    const tick = setInterval(() => { go.textContent = `Making your model… ${Math.round((Date.now() - t0) / 1000)}s`; }, 500);
+    go.textContent = 'Making your model…';
+    progress.reset();
+    // Photo edits (Kontext) take longer than a text sketch.
+    progress.set('concept', { warmMs: file ? 7000 : 3000 });
+    document.getElementById('hero-progress')!.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     try {
       hero?.destroy(); hero = null; delete stage.dataset.ready;
-      msg.textContent = 'Drawing your idea…';
+      msg.textContent = 'Sketching your idea…';
       const fd = new FormData();
       if (q) fd.set('prompt', q);
       if (file) fd.set('photo', file);
@@ -217,19 +223,28 @@ const faq = [
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || 'Something went wrong. Try again.');
       conceptImg.src = j.conceptUrl; conceptImg.hidden = false;
-      msg.textContent = 'Sculpting it in 3D (about 20 seconds)…';
+      msg.textContent = 'Sculpting it in 3D…';
+      progress.set('mesh');
       for (let i = 0; i < 120; i++) {
         await new Promise((r) => setTimeout(r, 1500));
         const s = await fetch(`/api/render/${encodeURIComponent(j.id)}`).then((r) => r.json()).catch(() => null);
-        if (s?.state === 'done') { utm.set('id', j.id); location.href = `/r?${utm}`; return; }
+        if (s?.state === 'done') {
+          progress.set('preview');
+          progress.handoff(j.id);
+          progress.release();
+          utm.set('id', j.id); location.href = `/r?${utm}`; return;
+        }
         if (s?.state === 'failed') throw new Error("The 3D step didn't work for that one. Try rewording it.");
+        if (s?.state === 'queued') progress.set('mesh', { label: s.position > 0 ? `In the queue (${s.position} ahead)` : 'In the queue' });
+        else if (s?.state === 'building') progress.set('mesh');
       }
       throw new Error('This is taking unusually long. Try again in a minute.');
     } catch (ex) {
+      progress.fail();
       err.textContent = ex instanceof Error ? ex.message : 'Something went wrong.';
       msg.textContent = '';
     } finally {
-      clearInterval(tick); go.disabled = false; go.textContent = 'Make my 3D model';
+      go.disabled = false; go.textContent = 'Make my 3D model';
     }
   });
 
