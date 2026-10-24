@@ -1,0 +1,445 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Owner dashboard" description="Private." noindex>
+  <div class="wrap dev">
+    <section id="gate" class="gate">
+      <h1>Owner dashboard</h1>
+      <form id="login" autocomplete="off">
+        <label for="pw">Password</label>
+        <div class="row">
+          <input id="pw" type="password" required autofocus />
+          <button type="submit" class="btn">Open</button>
+        </div>
+        <p id="login-err" class="err" role="alert"></p>
+      </form>
+    </section>
+
+    <section id="dash" hidden>
+      <header class="top">
+        <div>
+          <h1>Owner dashboard</h1>
+          <p class="sub"><span class="dot" id="live-dot"></span> <span id="updated">Loading…</span></p>
+        </div>
+        <div class="top-actions">
+          <button class="btn ghost" id="refresh" type="button">Refresh</button>
+          <button class="btn ghost" id="logout" type="button">Log out</button>
+        </div>
+      </header>
+      <p id="warn" class="warn" hidden></p>
+
+      <div class="kpis">
+        <div class="kpi wide">
+          <h2>Revenue (Whop)</h2>
+          <p class="big"><span id="k-rev">$0</span><span class="of"> / <span id="k-goal">$2,000</span></span></p>
+          <div class="bar"><span id="k-bar"></span></div>
+          <p class="note" id="k-pace"></p>
+        </div>
+        <div class="kpi"><h2>Orders paid</h2><p class="big" id="k-orders">0</p><p class="note" id="k-orders-n"></p></div>
+        <div class="kpi"><h2>Avg order</h2><p class="big" id="k-aov">$0</p><p class="note" id="k-founding"></p></div>
+        <div class="kpi"><h2>Time left</h2><p class="big mono" id="k-left">--:--:--</p><p class="note" id="k-need"></p></div>
+        <div class="kpi"><h2>Net after Whop fees</h2><p class="big" id="k-net">$0</p><p class="note" id="k-fees"></p></div>
+        <div class="kpi"><h2>Costs (est.)</h2><p class="big" id="k-costs">$0</p><p class="note" id="k-costs-n"></p></div>
+        <div class="kpi"><h2>Profit (est.)</h2><p class="big" id="k-profit">$0</p><p class="note" id="k-margin"></p></div>
+        <div class="kpi"><h2>3D renders</h2><p class="big" id="k-renders">0</p><p class="note" id="k-renders-n"></p></div>
+      </div>
+
+      <section class="card">
+        <h2>Revenue today (ET)</h2>
+        <div id="chart" class="chart"></div>
+      </section>
+
+      <div class="split">
+        <section class="card"><h2>Money</h2><table class="mini" id="money"></table></section>
+        <section class="card"><h2>By product</h2><table class="mini" id="by-product"></table></section>
+        <section class="card"><h2>By source</h2><table class="mini" id="by-source"></table></section>
+      </div>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Orders <span class="count" id="orders-count"></span></h2>
+          <label class="chk"><input type="checkbox" id="show-all" /> show unpaid / failed attempts</label>
+        </div>
+        <div class="table-wrap">
+          <table class="orders">
+            <thead><tr><th>When</th><th>Render</th><th>Item</th><th>Customer</th><th class="r">Paid</th><th class="r">Whop fee</th><th class="r">Cost</th><th class="r">Profit</th><th>Status</th><th>Source</th></tr></thead>
+            <tbody id="orders"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Bot activity</h2>
+        <ol class="feed" id="events"></ol>
+      </section>
+    </section>
+  </div>
+
+  <dialog id="detail">
+    <div class="d-inner">
+      <button class="x" id="d-close" type="button" aria-label="Close">×</button>
+      <div class="d-grid">
+        <div class="d-view">
+          <div id="d-stage" class="stage"></div>
+          <img id="d-concept" alt="Concept render" hidden />
+          <div class="d-tabs" id="d-tabs" hidden>
+            <button type="button" data-v="3d" class="on">3D model</button>
+            <button type="button" data-v="img">Concept image</button>
+          </div>
+        </div>
+        <div class="d-info"><h3 id="d-title"></h3><table class="mini" id="d-table"></table><p class="d-links" id="d-links"></p></div>
+      </div>
+    </div>
+  </dialog>
+</Base>
+
+<style is:global>
+  /* global: rows/cards are injected with innerHTML, which Astro's scoped styles don't reach. Only /dev loads this. */
+  .dev { padding-block: 1.25rem 3rem; }
+  .gate { max-width: 26rem; margin: 12vh auto; }
+  .gate h1, .top h1 { font: 900 clamp(2rem, 5vw, 3rem)/0.95 var(--display); }
+  .gate label { display: block; margin-top: 1.5rem; font: 700 0.8125rem var(--mono); }
+  .row { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
+  .row input { flex: 1; font: inherit; padding: 0.6rem 0.75rem; border: 2px solid var(--ink); background: var(--paper-hi); }
+  .btn { font: 700 0.9rem var(--mono); padding: 0.6rem 1rem; border: 2px solid var(--ink); background: var(--ink); color: var(--paper-hi); cursor: pointer; }
+  .btn.ghost { background: transparent; color: var(--ink); }
+  .err { color: var(--red); min-height: 1.5em; margin-top: 0.5rem; }
+  .top { display: flex; justify-content: space-between; align-items: end; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .top-actions { display: flex; gap: 0.5rem; }
+  .sub { color: var(--ink-2); font: 400 0.85rem var(--mono); margin-top: 0.35rem; }
+  .dot { display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 50%; background: #2d8550; vertical-align: 0.05em; }
+  .dot.stale { background: var(--red); }
+  .warn { border: 2px solid var(--red); color: var(--red); padding: 0.6rem 0.8rem; margin-bottom: 1rem; font: 700 0.85rem var(--mono); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr)); gap: 0.75rem; }
+  .kpi, .card { border: 2px solid var(--ink); background: var(--paper-hi); padding: 0.9rem 1rem; }
+  .kpi.wide { grid-column: span 2; }
+  @media (max-width: 34rem) { .kpi.wide { grid-column: auto; } }
+  .kpi h2, .card h2 { font: 700 0.75rem/1.2 var(--mono); text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); margin-bottom: 0.4rem; }
+  .big { font: 900 clamp(2rem, 4vw, 2.9rem)/1 var(--display); font-variant-numeric: tabular-nums; }
+  .big.mono { font-family: var(--mono); font-weight: 700; font-size: clamp(1.6rem, 3vw, 2.2rem); letter-spacing: -0.03em; }
+  #k-rev { color: var(--red); }
+  .of { color: var(--ink-2); font-size: 0.5em; }
+  .note { color: var(--ink-2); font: 400 0.8rem/1.35 var(--mono); margin-top: 0.4rem; }
+  .bar { height: 14px; border: 1px solid var(--ink); margin-top: 0.6rem; }
+  .bar span { display: block; height: 100%; background: var(--red); width: 0; transition: width 0.6s var(--ease); }
+  .pos { color: #2d8550; } .neg { color: var(--red); }
+  .card { margin-top: 0.75rem; }
+  .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+  .chk { font: 400 0.8rem var(--mono); color: var(--ink-2); }
+  .count { color: var(--ink); }
+  .split { display: grid; gap: 0 0.75rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+  .chart { width: 100%; }
+  .chart svg { width: 100%; height: 200px; }
+  table { border-collapse: collapse; width: 100%; }
+  .mini td { padding: 0.3rem 0; border-bottom: 1px dotted var(--rule); font-size: 0.9rem; vertical-align: top; }
+  .mini td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 0.85rem; }
+  .mini tr.total td { font-weight: 700; border-bottom: 0; border-top: 2px solid var(--ink); }
+  .mini .muted { color: var(--ink-2); font-size: 0.8rem; }
+  .table-wrap { overflow-x: auto; margin-top: 0.5rem; }
+  .orders th { text-align: left; font: 700 0.72rem var(--mono); color: var(--ink-2); padding: 0.4rem 0.6rem 0.4rem 0; border-bottom: 2px solid var(--ink); white-space: nowrap; }
+  .orders td { padding: 0.5rem 0.6rem 0.5rem 0; border-bottom: 1px dotted var(--rule); vertical-align: middle; font-size: 0.88rem; }
+  .orders .r { text-align: right; font-family: var(--mono); font-size: 0.82rem; white-space: nowrap; }
+  .orders tbody tr { cursor: pointer; }
+  .orders tbody tr:hover { background: var(--paper); }
+  .orders tr.new { animation: flash 3s var(--ease); }
+  @keyframes flash { from { background: #f6d55c; } to { background: transparent; } }
+  .orders .when { white-space: nowrap; font-family: var(--mono); font-size: 0.8rem; }
+  .orders .when small, .orders small { display: block; color: var(--ink-2); font-size: 0.75rem; }
+  .thumb { width: 64px; height: 64px; object-fit: contain; background: #fff; border: 1px solid var(--rule); }
+  .thumb.none { display: grid; place-items: center; font: 700 0.65rem var(--mono); color: var(--ink-2); }
+  .pill { display: inline-block; font: 700 0.7rem var(--mono); padding: 0.15rem 0.45rem; border: 1px solid currentColor; text-transform: uppercase; white-space: nowrap; }
+  .pill.paid { color: #2d8550; } .pill.refunded, .pill.disputed, .pill.failed { color: var(--red); } .pill.other { color: var(--ink-2); }
+  .est { color: var(--ink-2); }
+  .feed { list-style: none; padding: 0; margin: 0; max-height: 22rem; overflow-y: auto; }
+  .feed li { display: grid; grid-template-columns: 6.5rem 7rem 1fr; gap: 0.5rem; padding: 0.35rem 0; border-bottom: 1px dotted var(--rule); font-size: 0.88rem; }
+  .feed time { font: 400 0.78rem var(--mono); color: var(--ink-2); }
+  .feed .agent { font-weight: 700; overflow-wrap: anywhere; }
+  .empty { color: var(--ink-2); padding: 0.5rem 0; }
+  dialog { border: 2px solid var(--ink); padding: 0; background: var(--paper-hi); width: min(980px, 94vw); max-height: 92vh; }
+  dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+  .d-inner { position: relative; padding: 1rem; }
+  .x { position: absolute; top: 0.4rem; right: 0.6rem; font-size: 1.6rem; background: none; border: 0; cursor: pointer; z-index: 2; }
+  .d-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1rem; }
+  @media (max-width: 44rem) { .d-grid { grid-template-columns: 1fr; } }
+  .stage { width: 100%; aspect-ratio: 1; background: #fff; border: 1px solid var(--rule); }
+  .stage canvas { width: 100% !important; height: 100% !important; }
+  #d-concept { width: 100%; aspect-ratio: 1; object-fit: contain; background: #fff; border: 1px solid var(--rule); }
+  .d-tabs { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+  .d-tabs button { font: 700 0.75rem var(--mono); padding: 0.35rem 0.6rem; border: 1px solid var(--ink); background: transparent; cursor: pointer; }
+  .d-tabs button.on { background: var(--ink); color: var(--paper-hi); }
+  .d-info h3 { font: 900 1.6rem/1 var(--display); margin: 0.2rem 2rem 0.75rem 0; }
+  .d-info .mini td:last-child { text-align: left; padding-left: 0.75rem; overflow-wrap: anywhere; }
+  .d-info .mini td:first-child { color: var(--ink-2); white-space: nowrap; font: 400 0.8rem var(--mono); }
+  .d-links { margin-top: 0.75rem; display: flex; gap: 1rem; flex-wrap: wrap; font: 400 0.85rem var(--mono); }
+</style>
+
+<script>
+  import { mountFigureViewer, type Base as PlinthBase, type FigureViewer } from '../lib/figure-viewer';
+
+  const KEY = 'trove-dev-pass';
+  const POLL_MS = 10_000;
+  const HEX: Record<string, string> = { black: '#1d1d1f', white: '#f2f1ed', grey: '#9a9a9a', red: '#c3302c', blue: '#2554c7', green: '#2d8550', gold: '#c9a24b' };
+  const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+  const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+  const usd = (c: number, cents = true) => (c < 0 ? '-' : '') + '$' + (Math.abs(c) / 100).toLocaleString('en-US', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 });
+  const usd0 = (c: number) => usd(c, Math.abs(c) % 100 !== 0);
+  const pct = (x: number | null) => (x == null ? '–' : (x * 100).toFixed(0) + '%');
+  const safeUrl = (u: unknown) => { if (!u) return ''; try { const x = new URL(String(u), location.href); return /^https?:$/.test(x.protocol) ? x.href : ''; } catch { return ''; } };
+  const et = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', ...opts });
+  function ago(iso: string) {
+    const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+    if (s < 60) return s + 's ago';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm ago';
+    return Math.floor(s / 86400) + 'd ago';
+  }
+
+  let pass = localStorage.getItem(KEY) || '';
+  let data: any = null;
+  let lastOk = 0;
+  let seen: Set<string> | null = null;
+  let timer = 0;
+
+  async function load(): Promise<boolean> {
+    const res = await fetch('/api/stats', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: pass }), cache: 'no-store' });
+    if (res.status === 401) { logout('Wrong password.'); return false; }
+    const j = await res.json().catch(() => null);
+    if (!res.ok || !j) throw new Error(j?.error || `Error ${res.status}`);
+    data = j; lastOk = Date.now();
+    render();
+    return true;
+  }
+
+  async function tick() {
+    clearTimeout(timer);
+    try { await load(); $('warn').hidden = !data?.stale && data?.whop_configured !== false; if (data?.stale) $('warn').textContent = 'Whop did not answer; showing the last good numbers.'; }
+    catch (e) { const w = $('warn'); w.hidden = false; w.textContent = 'Update failed: ' + (e instanceof Error ? e.message : 'network error') + '. Retrying.'; }
+    if (pass) timer = window.setTimeout(tick, POLL_MS);
+  }
+
+  function logout(msg = '') {
+    clearTimeout(timer); pass = ''; localStorage.removeItem(KEY);
+    $('dash').hidden = true; $('gate').hidden = false; $('login-err').textContent = msg; $<HTMLInputElement>('pw').focus();
+  }
+
+  $('login').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    pass = $<HTMLInputElement>('pw').value;
+    $('login-err').textContent = '';
+    try {
+      const res = await fetch('/api/stats', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: pass }) });
+      if (!res.ok) { const j = await res.json().catch(() => ({})); $('login-err').textContent = j.error || 'Error ' + res.status; pass = ''; return; }
+      localStorage.setItem(KEY, pass);
+      open();
+    } catch { $('login-err').textContent = 'Network error.'; }
+  });
+  $('logout').addEventListener('click', () => logout());
+  $('refresh').addEventListener('click', () => tick());
+  $('show-all').addEventListener('change', () => data && renderOrders());
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && pass && Date.now() - lastOk > POLL_MS) tick(); });
+
+  function open() { $('gate').hidden = true; $('dash').hidden = false; tick(); }
+  if (pass) open();
+
+  // ---------- render ----------
+  function render() {
+    const t = data.totals;
+    $('k-rev').textContent = usd0(t.revenue_cents);
+    $('k-goal').textContent = usd0(data.goal_cents);
+    const frac = Math.min(1, t.revenue_cents / data.goal_cents);
+    $('k-bar').style.width = (frac * 100).toFixed(1) + '%';
+    $('k-pace').textContent = `${(frac * 100).toFixed(1)}% of goal · ${usd0(Math.max(0, data.goal_cents - t.revenue_cents))} to go`;
+    $('k-orders').textContent = String(t.orders_paid - t.orders_refunded);
+    $('k-orders-n').textContent = [t.orders_refunded ? `${t.orders_refunded} refunded` : '', t.attempts_other ? `${t.attempts_other} unpaid/failed attempts` : ''].filter(Boolean).join(' · ') || 'no refunds';
+    $('k-aov').textContent = usd(t.aov_cents);
+    $('k-founding').textContent = `${data.founding_left} founding editions left`;
+    $('k-net').textContent = usd(t.net_cents);
+    $('k-fees').textContent = `Whop fees ${usd(t.fees_cents)}${t.fees_all_actual ? ' (actual)' : ' (some est.)'}${t.refunded_cents ? ` · refunds ${usd(t.refunded_cents)}` : ''}`;
+    $('k-costs').textContent = usd(t.costs_cents);
+    $('k-costs-n').textContent = `print+ship ${usd(t.production_cents)} · renders ${usd(t.render_cents)} · fees ${usd(t.fees_cents)}`;
+    const pf = $('k-profit'); pf.textContent = usd(t.profit_cents); pf.className = 'big ' + (t.profit_cents >= 0 ? 'pos' : 'neg');
+    $('k-margin').textContent = `margin ${pct(t.margin)} of revenue`;
+    $('k-renders').textContent = String(t.renders_today);
+    $('k-renders-n').textContent = `today (UTC) · ${t.renders_3d} in 3 days · ${t.conversion == null ? '–' : (t.conversion * 100).toFixed(1) + '%'} became orders`;
+    $('updated').textContent = 'Live · updated ' + new Date(data.generated_at).toLocaleTimeString() + ' · refreshes every 10 s';
+    $('live-dot').classList.toggle('stale', Boolean(data.stale));
+    if (data.whop_configured === false) { const w = $('warn'); w.hidden = false; w.textContent = 'Whop keys are not set on this deployment, so there are no orders to show.'; }
+    renderClock();
+    renderChart();
+    renderMoney();
+    renderBreakdown('by-product', data.by_product);
+    renderBreakdown('by-source', data.by_source);
+    renderOrders();
+    renderEvents();
+  }
+
+  function renderClock() {
+    if (!data) return;
+    const left = new Date(data.ends_at).getTime() - Date.now();
+    if (left <= 0) { $('k-left').textContent = 'Done'; $('k-need').textContent = 'challenge window closed'; return; }
+    const h = Math.floor(left / 3600e3), m = Math.floor((left % 3600e3) / 60e3), s = Math.floor((left % 60e3) / 1000);
+    $('k-left').textContent = [h, m, s].map((n) => String(n).padStart(2, '0')).join(':');
+    const need = Math.max(0, data.goal_cents - data.totals.revenue_cents);
+    $('k-need').textContent = need ? `need ${usd0(Math.ceil(need / Math.max(left / 3600e3, 0.01)))}/hour to hit goal` : 'goal hit';
+  }
+  setInterval(renderClock, 1000);
+
+  function renderMoney() {
+    const t = data.totals;
+    const rows: [string, number, string?][] = [
+      ['Gross sales', t.gross_cents],
+      ['Refunds', -t.refunded_cents],
+      ['Whop fees', -t.fees_cents, t.fees_all_actual ? 'actual' : 'part est.'],
+      ['Print + shipping', -t.production_cents, 'est.'],
+      ['3D renders', -t.render_cents, `${t.renders_3d} × ${usd(t.render_cost_each_cents)} est.`],
+    ];
+    $('money').innerHTML = rows.map(([k, v, n]) => `<tr><td>${esc(k)}${n ? ` <span class="muted">${esc(n)}</span>` : ''}</td><td>${usd(v)}</td></tr>`).join('') +
+      `<tr class="total"><td>Profit (est.)</td><td class="${t.profit_cents >= 0 ? 'pos' : 'neg'}">${usd(t.profit_cents)}</td></tr>`;
+  }
+
+  function renderBreakdown(id: string, obj: Record<string, { orders: number; revenue_cents: number }>) {
+    const rows = Object.entries(obj || {}).sort((a, b) => b[1].revenue_cents - a[1].revenue_cents);
+    $(id).innerHTML = rows.length
+      ? rows.map(([k, v]) => `<tr><td>${esc(k)} <span class="muted">× ${v.orders}</span></td><td>${usd(v.revenue_cents)}</td></tr>`).join('')
+      : '<tr><td class="muted">No sales yet</td><td></td></tr>';
+  }
+
+  function renderChart() {
+    // Cumulative paid revenue (minus refunds) across today in ET, plus hourly bars.
+    const paid = data.orders.filter((o: any) => o.gross_cents > 0 && (o.paid_at || o.created_at)).map((o: any) => ({ t: new Date(o.paid_at || o.created_at).getTime(), c: o.gross_cents - o.refunded_cents })).sort((a: any, b: any) => a.t - b.t);
+    const end = new Date(data.ends_at).getTime();
+    const dayET = et(new Date().toISOString(), { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const start = Math.min(end - 15 * 3600e3, ...paid.filter((p: any) => et(new Date(p.t).toISOString(), { year: 'numeric', month: '2-digit', day: '2-digit' }) === dayET).map((p: any) => p.t));
+    const W = 1000, H = 200, P = 28;
+    const x = (t: number) => P + ((t - start) / (end - start)) * (W - 2 * P);
+    const goal = data.goal_cents;
+    const top = Math.max(data.totals.revenue_cents * 1.35, 10000); // goal line drawn only when it fits the scale
+    const goalFits = goal <= top;
+    const y = (c: number) => H - P - (c / top) * (H - 2 * P);
+    let cum = 0;
+    const pts: string[] = [`${x(start)},${y(0)}`];
+    const inWin = paid.filter((p: any) => p.t >= start);
+    cum = paid.filter((p: any) => p.t < start).reduce((s: number, p: any) => s + p.c, 0);
+    pts[0] = `${x(start)},${y(cum)}`;
+    for (const p of inWin) { pts.push(`${x(p.t)},${y(cum)}`); cum += p.c; pts.push(`${x(p.t)},${y(cum)}`); }
+    const now = Math.min(Date.now(), end);
+    pts.push(`${x(now)},${y(cum)}`);
+    const hours: number[] = [];
+    for (let h = Math.ceil(start / 3600e3) * 3600e3; h <= end; h += 3600e3) hours.push(h);
+    const buckets = new Map<number, number>();
+    for (const p of inWin) { const h = Math.floor(p.t / 3600e3) * 3600e3; buckets.set(h, (buckets.get(h) || 0) + p.c); }
+    const maxB = Math.max(1, ...buckets.values());
+    const bw = ((W - 2 * P) / ((end - start) / 3600e3)) * 0.7;
+    const bars = [...buckets].map(([h, c]) => `<rect x="${x(h)}" y="${H - P - (c / maxB) * 50}" width="${bw}" height="${(c / maxB) * 50}" fill="var(--ink)" opacity="0.18"><title>${et(new Date(h).toISOString(), { hour: 'numeric' })}: ${usd(c)}</title></rect>`).join('');
+    const ticks = hours.filter((_, i) => i % 2 === 0).map((h) => `<text x="${x(h)}" y="${H - 8}" font-size="11" text-anchor="middle" fill="var(--ink-2)" font-family="var(--mono)">${et(new Date(h).toISOString(), { hour: 'numeric' })}</text>`).join('');
+    const dots = inWin.map((p: any) => `<circle cx="${x(p.t)}" cy="${y(paid.filter((q: any) => q.t <= p.t).reduce((s: number, q: any) => s + q.c, 0))}" r="3.5" fill="var(--red)"><title>${et(new Date(p.t).toISOString(), { hour: 'numeric', minute: '2-digit' })} +${usd(p.c)}</title></circle>`).join('');
+    $('chart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Cumulative revenue today">
+      ${goalFits ? `<line x1="${P}" x2="${W - P}" y1="${y(goal)}" y2="${y(goal)}" stroke="var(--ink)" stroke-dasharray="5 4" stroke-width="1"/>` : ''}
+      <text x="${W - P}" y="${goalFits ? y(goal) - 5 : 14}" font-size="11" text-anchor="end" fill="var(--ink-2)" font-family="var(--mono)">goal ${usd0(goal)}${goalFits ? '' : ' (above scale)'}</text>
+      <text x="${P}" y="14" font-size="11" fill="var(--ink-2)" font-family="var(--mono)">${usd0(Math.round(top / 100) * 100)}</text>
+      <line x1="${P}" x2="${W - P}" y1="${y(top / 2)}" y2="${y(top / 2)}" stroke="var(--rule)" stroke-width="1"/>
+      <text x="${P}" y="${y(top / 2) - 4}" font-size="11" fill="var(--ink-2)" font-family="var(--mono)">${usd0(Math.round(top / 200) * 100)}</text>
+      <line x1="${x(now)}" x2="${x(now)}" y1="${P / 2}" y2="${H - P}" stroke="var(--rule)" stroke-width="1"/>
+      ${bars}
+      <polyline points="${pts.join(' ')}" fill="none" stroke="var(--red)" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+      ${dots}${ticks}
+      <line x1="${P}" x2="${W - P}" y1="${H - P}" y2="${H - P}" stroke="var(--ink)" stroke-width="1"/>
+    </svg>`;
+  }
+
+  function itemLine(o: any) {
+    if (o.product === 'custom') return `${o.height_mm ? o.height_mm + ' mm' : esc(o.size || '')} · ${esc(o.colour || '')} · ${esc(o.base || '')} base`;
+    if (o.product === 'tweet') return esc((o.tweet_text || o.tweet_url || '').slice(0, 70));
+    if (o.product === 'milestone') return esc([o.number, o.label].filter(Boolean).join(' '));
+    if (o.product === 'team') return esc(o.team || '');
+    return esc(o.plan_title || '');
+  }
+  const pillClass = (s: string) => (s === 'paid' ? 'paid' : ['refunded', 'disputed', 'failed', 'part_refunded'].includes(s) ? 'refunded' : 'other');
+
+  function renderOrders() {
+    const all = $<HTMLInputElement>('show-all').checked;
+    const list = data.orders.filter((o: any) => all || o.gross_cents > 0);
+    const first = seen === null;
+    const ids = new Set<string>(data.orders.map((o: any) => o.id));
+    const fresh = first ? new Set<string>() : new Set([...ids].filter((i) => !seen!.has(i)));
+    seen = ids;
+    if (fresh.size && !document.hasFocus()) document.title = `(${fresh.size} new) Owner dashboard`;
+    $('orders-count').textContent = `(${list.length})`;
+    $('orders').innerHTML = list.length ? list.map((o: any) => {
+      const when = o.paid_at || o.created_at;
+      const img = safeUrl(o.concept);
+      return `<tr data-id="${esc(o.id)}" class="${fresh.has(o.id) ? 'new' : ''}">
+        <td class="when">${when ? esc(et(when, { hour: 'numeric', minute: '2-digit' })) + ' ET<small>' + esc(ago(when)) + '</small>' : '–'}</td>
+        <td>${img ? `<img class="thumb" src="${esc(img)}" alt="" loading="lazy" />` : `<div class="thumb none">${esc(o.product.slice(0, 5))}</div>`}</td>
+        <td><strong>${esc(o.product_name)}</strong>${o.ref ? ` <span class="muted">#${esc(o.ref)}</span>` : ''}<small>${itemLine(o)}</small></td>
+        <td>${esc(o.customer.name || '–')}<small>${esc([o.customer.city, o.customer.state].filter(Boolean).join(', '))}</small></td>
+        <td class="r">${o.gross_cents ? usd(o.gross_cents) : `<span class="est">${usd(o.attempted_cents)}</span>`}</td>
+        <td class="r">${o.gross_cents ? usd(o.fee_cents) + (o.fee_actual ? '' : '<small>est.</small>') : '–'}</td>
+        <td class="r">${o.gross_cents ? usd(o.cost_cents) + '<small>est.</small>' : '–'}</td>
+        <td class="r ${o.profit_cents >= 0 ? 'pos' : 'neg'}">${o.gross_cents ? usd(o.profit_cents) : '–'}</td>
+        <td><span class="pill ${pillClass(o.status)}">${esc(o.status.replace('_', ' '))}</span></td>
+        <td>${esc(o.source)}</td></tr>`;
+    }).join('') : `<tr><td colspan="10" class="empty">No orders yet.</td></tr>`;
+  }
+
+  $('orders').addEventListener('click', (e) => {
+    const tr = (e.target as HTMLElement).closest('tr[data-id]') as HTMLElement | null;
+    const o = tr && data.orders.find((x: any) => x.id === tr.dataset.id);
+    if (o) showDetail(o);
+  });
+  window.addEventListener('focus', () => { document.title = 'Owner dashboard'; });
+
+  function renderEvents() {
+    const ev = data.events || [];
+    $('events').innerHTML = ev.length ? ev.map((e: any) => `<li><time>${esc(e.ts ? et(e.ts, { hour: 'numeric', minute: '2-digit' }) + ' · ' + ago(e.ts) : '')}</time><span class="agent">${esc(e.agent)}</span><span>${esc(e.text)}</span></li>`).join('') : '<li class="empty">No bot events yet.</li>';
+  }
+
+  // ---------- order detail with live 3D ----------
+  let viewer: FigureViewer | null = null;
+  const dlg = $<HTMLDialogElement>('detail');
+  $('d-close').addEventListener('click', () => dlg.close());
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+  dlg.addEventListener('close', () => { viewer?.destroy(); viewer = null; $('d-stage').innerHTML = ''; });
+  function view(v: '3d' | 'img') {
+    $('d-stage').hidden = v !== '3d'; $('d-concept').hidden = v !== 'img';
+    for (const b of $('d-tabs').querySelectorAll('button')) b.classList.toggle('on', (b as HTMLElement).dataset.v === v);
+  }
+  $('d-tabs').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (b) view(b.dataset.v as '3d' | 'img'); });
+
+  function showDetail(o: any) {
+    const glb = safeUrl(o.glb), img = safeUrl(o.concept);
+    $('d-title').textContent = `${o.product_name}${o.ref ? ' #' + o.ref : ''}`;
+    const when = o.paid_at || o.created_at;
+    const rows: [string, unknown][] = [
+      ['Status', o.status.replace('_', ' ')], ['Placed', when ? et(when, { dateStyle: 'medium', timeStyle: 'short' }) + ' ET (' + ago(when) + ')' : '–'],
+      ['Paid', o.gross_cents ? usd(o.gross_cents) : `${usd(o.attempted_cents)} (not paid)`],
+      ['Whop fee', o.gross_cents ? usd(o.fee_cents) + (o.fee_actual ? ' (actual)' : ' (est.)') : '–'],
+      ['Print + ship', o.gross_cents ? `${usd(o.cost_cents)} (est., ${o.cost_source})` : '–'],
+      ['Profit', o.gross_cents ? usd(o.profit_cents) + (o.gross_cents ? ` (${Math.round((o.profit_cents / o.gross_cents) * 100)}%)` : '') : '–'],
+      ['Refunded', o.refunded_cents ? usd(o.refunded_cents) : ''],
+      ['Size', o.height_mm ? `${o.height_mm} mm (${o.size})` : o.size], ['Colour', o.colour], ['Base', o.base],
+      ['Volume', o.volume_cm3 ? `${o.volume_cm3} cm³` : ''], ['Tweet', o.tweet_text], ['Likes', o.likes], ['Number', o.number], ['Label', o.label],
+      ['Name on item', o.name], ['Team', o.team], ['Gift', o.gift ? `from ${o.gift.from}${o.gift.note ? ': ' + o.gift.note : ''}` : ''],
+      ['Customer', o.customer.name], ['Email', o.customer.email], ['Ships to', [o.customer.city, o.customer.state].filter(Boolean).join(', ')],
+      ['Source', o.source], ['Failure', o.failure], ['Whop payment', o.id],
+    ];
+    $('d-table').innerHTML = rows.filter(([, v]) => v != null && v !== '').map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('');
+    const links: string[] = [];
+    if (o.render_id) links.push(`<a href="/r?id=${encodeURIComponent(o.render_id)}" target="_blank" rel="noopener">Open in viewer ↗</a>`);
+    if (glb) links.push(`<a href="${esc(glb)}" target="_blank" rel="noopener">Download GLB ↗</a>`);
+    if (safeUrl(o.tweet_url)) links.push(`<a href="${esc(safeUrl(o.tweet_url))}" target="_blank" rel="noopener">Tweet ↗</a>`);
+    if (o.claim_slug) links.push(`<a href="/c/${encodeURIComponent(o.claim_slug)}" target="_blank" rel="noopener">Claim page ↗</a>`);
+    $('d-links').innerHTML = links.join('');
+    $<HTMLImageElement>('d-concept').src = img || '';
+    $('d-tabs').hidden = !(glb && img);
+    dlg.showModal();
+    if (glb) {
+      view('3d');
+      viewer = mountFigureViewer($('d-stage'));
+      if (o.colour && HEX[o.colour]) viewer.setColour(HEX[o.colour]);
+      if (o.base) viewer.setBase(o.base as PlinthBase);
+      viewer.load(glb).catch(() => { if (img) view('img'); });
+    } else if (img) view('img');
+    else { $('d-stage').hidden = false; $('d-concept').hidden = true; $('d-stage').innerHTML = `<p class="empty" style="padding:1rem">No render stored for this order (${esc(o.product_name)}).</p>`; }
+  }
+</script>

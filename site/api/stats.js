@@ -6,7 +6,7 @@ const PER_PAGE = 100;
 const CACHE_MS = 30_000;
 const PAID = new Set(["paid", "succeeded"]);
 
-function isPaid(p) {
+export function isPaid(p) {
   const s = String(p.status || "").toLowerCase();
   const sub = String(p.substatus || "").toLowerCase();
   return PAID.has(s) || PAID.has(sub);
@@ -15,7 +15,7 @@ function isPaid(p) {
 // Whop v1 (verified on a live payment, Oct 24 2026) returns money as objects:
 // total: { currency: "usd", amount: "39.00", decimals: 2 }, refunded_amount: { amount: "0.00" }.
 // Older shapes (plain dollar numbers, *_cents fields) are still accepted.
-function moneyCents(v) {
+export function moneyCents(v) {
   if (v == null) return null;
   if (typeof v === "object") {
     const n = Number(v.amount);
@@ -68,9 +68,9 @@ function nextPageParams(body, currentPage) {
   return null;
 }
 
-export async function fetchWhopTotals(env) {
-  let revenue_cents = 0;
-  let orders = 0;
+/** Every Whop payment for the company (all statuses), newest first as Whop returns them. */
+export async function fetchWhopPayments(env) {
+  const all = [];
   let params = { page: "1" };
   for (let i = 0; i < MAX_PAGES && params; i++) {
     const u = new URL(WHOP_PAYMENTS);
@@ -84,13 +84,20 @@ export async function fetchWhopTotals(env) {
     if (!res.ok) throw new Error(`whop status ${res.status}`);
     const body = await res.json();
     const list = listFrom(body);
-    for (const p of list) {
-      if (!p || !isPaid(p)) continue;
-      orders += 1;
-      revenue_cents += paymentCents(p);
-    }
+    for (const p of list) if (p) all.push(p);
     const currentPage = Number(params.page || i + 1);
     params = list.length ? nextPageParams(body, currentPage) : null;
+  }
+  return all;
+}
+
+export async function fetchWhopTotals(env) {
+  let revenue_cents = 0;
+  let orders = 0;
+  for (const p of await fetchWhopPayments(env)) {
+    if (!isPaid(p)) continue;
+    orders += 1;
+    revenue_cents += paymentCents(p);
   }
   return { revenue_cents, orders };
 }
@@ -134,4 +141,11 @@ export async function handleGet(request, env) {
 
 export function GET(request) {
   return handleGet(request, process.env);
+}
+
+// POST /api/stats { password } -> private owner dashboard (served by /dev). Lives here because
+// Vercel Hobby caps a deployment at 12 functions. POST, so no CDN or browser caching.
+export async function POST(request) {
+  const { handleDev } = await import("./_dev.js");
+  return handleDev(request, process.env);
 }
