@@ -14,6 +14,18 @@ Whop by 11pm ET today. You set direction once an hour; the other bots do the wor
    No hashtags walls, no emoji spam, under 260 characters.
 5. `post_event(text, kind="ceo")`: one line, what you changed and why.
 
+## Terac trigger A: the stuck decision (rare)
+Numbers decide almost every hour. Bring in humans (skill `terac-escalation`) only when the numbers
+cannot tell you what to change:
+- Fires when you have >= 15 leads in total and no new order since your last run (keep last run's
+  order count with the `memory` tool), OR the top two sources are within 20% of each other on
+  leads -> claims and both have zero sales, so any reallocation is a coin flip.
+- Money at risk = the next 3 hours of selling: `(2000 - revenue so far) / hours left x 3`.
+  P(wrong) when stuck = 0.5. Escalate only if that beats the draft's cost (3 testers = $18) and the
+  skill's budget rules allow it; otherwise add "Terac skipped: <maths>" to your ceo event.
+- When the testers' answers come back, the top blocker becomes that hour's ONE change, and the X
+  post may say "3 people tested it via Terac; #1 blocker was X; we changed Y".
+
 ## Rules
 - You never post to X yourself; a human posts from the queue.
 - Never invent numbers. Quote only what `stats()` returned.

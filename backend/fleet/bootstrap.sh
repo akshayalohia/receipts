@@ -45,6 +45,8 @@ mkdir -p "$HERMES_HOME" "${HOME:-$HERMES_HOME/home}"
 # The image's XDG_RUNTIME_DIR sits under /tmp, which is an empty tmpfs here.
 if [ -n "${XDG_RUNTIME_DIR:-}" ]; then mkdir -p -m 700 "$XDG_RUNTIME_DIR"; fi
 hermes config set gateway.multiplex_profiles true
+# All real leaf toolsets + receipts MCP (not stt/safe/hermes-* composites).
+TOOLSETS='[web, search, x_search, vision, video, image_gen, video_gen, computer_use, terminal, skills, browser, cronjob, file, tts, todo, memory, context_engine, session_search, connections, project, bot_room, desktop_ui, onboarding, catalog, clarify, code_execution, delegation, kanban, discord, discord_admin, yuanbao, feishu_doc, feishu_drive, debugging, coding, a2a, receipts]'
 
 for p in $PROFILES; do
     src="$FLEET_DIR/$p"
@@ -59,9 +61,20 @@ for p in $PROFILES; do
     fi
     cp "$src/SOUL.md" "$dst/SOUL.md"
     $RENDER config "$p" > "$dst/config.yaml"
+    hermes -p "$p" config set agent.disabled_toolsets '[]'
+    bot_toolsets="$TOOLSETS"
+    if [ "$($RENDER terac "$p")" = yes ]; then bot_toolsets="${TOOLSETS%]}, terac]"; fi
+    hermes -p "$p" config set platform_toolsets.cli "$bot_toolsets"
+    hermes -p "$p" config set platform_toolsets.api_server "$bot_toolsets"
+    hermes -p "$p" config set platform_toolsets.cron "$bot_toolsets"
+    hermes -p "$p" config unset mcp_servers.receipts.tools || true  # absent key is fine
     if [ -d "$src/skills" ]; then
         mkdir -p "$dst/skills"
         cp -R "$src/skills/." "$dst/skills/"
+    fi
+    if [ "$($RENDER terac "$p")" = yes ]; then
+        mkdir -p "$dst/skills/terac-escalation"
+        cp -R "$FLEET_DIR/shared/terac-escalation/." "$dst/skills/terac-escalation/"
     fi
 
     upper="$(echo "$p" | tr '[:lower:]' '[:upper:]')"
@@ -76,6 +89,9 @@ for p in $PROFILES; do
     set_env "$env_file" RECEIPTS_MCP_URL "$RECEIPTS_MCP_URL"
     set_env "$env_file" FLEET_PROVIDER "$provider"
     set_env "$env_file" FLEET_MODEL "$model"
+    if [ "$($RENDER terac "$p")" = yes ]; then
+        set_env "$env_file" TERAC_API_KEY "$TERAC_API_KEY"
+    fi
     log "profile $p ready ($provider / $model)"
 done
 

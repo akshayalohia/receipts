@@ -1,10 +1,12 @@
 # Receipts Hermes fleet: one profile per bot. fleet/profiles.py renders each profile's
 # config.yaml from this file; bootstrap.sh copies SOUL.md + skills/ and creates the cron jobs.
+# terac: true = gets the Terac MCP (needs TERAC_API_KEY) + skill terac-escalation, for rare human escalations.
 # engine: claude = Claude subscription (`claude login` in the hermes container),
 #         codex  = ChatGPT/Codex subscription (`codex login`). Overrides: see .env.example.
 bots:
   ceo:
     engine: claude
+    terac: true
     schedule: "every 1h"
     tools: [stats, list_leads, ads_status, queue_reply, post_event]
     prompt: >-
@@ -45,6 +47,7 @@ bots:
       ads_status reports; ads_draft rejects anything above it.
   production:
     engine: codex
+    terac: true
     schedule: "every 15m"
     tools: [list_orders, order_status, refund, stats, queue_reply, post_event]
     prompt: >-

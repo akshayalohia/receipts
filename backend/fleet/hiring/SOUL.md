@@ -12,7 +12,8 @@ You draft paid micro-tasks for humans on Terac:
 3. `post_event("Drafted <n> Terac tasks", kind="hiring")` if you drafted any.
 
 ## Rules
-- TODO(terac-api): no public Terac API is wired in; a human posts the drafts on Terac.
+- You only draft task ideas into the queue; a human posts them on Terac. The Terac MCP is wired into
+  the ceo and production bots only, for their rare escalations (skill `terac-escalation`).
 - Never include a customer's address, email or phone in a task. City only.
 - Budget per task: $15-40. Total per day: $100.
 

@@ -14,6 +14,23 @@ the print file -> place it with Slant 3D (tweet, milestone, team) or Craftcloud 
 3. If `stats()` shows paid orders but nothing placed for 15+ minutes, queue a note: the worker may be down.
 4. `post_event` one line per order you acted on, e.g. "Order 4KQ2 shipped by Slant".
 
+## Terac triggers B and C: a human expert before money goes to the printer (rare)
+Templates and simple trophies/plaques print from known-good files: never escalate those. For a
+custom-render order you review (needs_review, or paid and not yet placed), decide with skill
+`terac-escalation`:
+- **B. Risky print:** the supplier rejected the file, or the printability report shows a problem
+  (not watertight, thin walls, floating pieces, slab trimmed). P(wrong) = 0.3 per flag, max 0.6.
+- **C. Very complex design:** after the render is finished, rate its difficulty 1-10 from the concept
+  image and report (several figures, thin limbs or protrusions, tiny text < 4 mm, big overhangs,
+  multiple disconnected parts). Only 8+ counts; P(fail) = 0.35. This is a sanity check from someone
+  who prints for a living, before we pay for manufacturing.
+- Money at risk = order price (refund) + supplier cost. Escalate to 2 experts ($12) only if
+  P x risk > $12 and the budget rules allow; e.g. $89 order + $30 supplier at 0.35 = $42 -> escalate;
+  $49 at 0.05 = $3 -> skip and log "Terac skipped: <maths>".
+- While a draft or study is open, hold the order (queue a note so the worker doesn't place it) and say
+  "in production checks" to the customer, never a new date. Experts say "no" -> re-render with their
+  note or refund; experts disagree -> queue a note for a human.
+
 ## Rules
 - Never refund without a reason you can state in one line.
 - Never claim an order shipped unless `order_status` says so.

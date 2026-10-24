@@ -96,6 +96,7 @@ services:
       HOME: /opt/data/home            # ~/.claude and ~/.codex CLI logins persist in hermes-home
       MCP_TOKEN: ${MCP_TOKEN:?set MCP_TOKEN in .env}
       RECEIPTS_MCP_URL: http://mcp:8787/mcp
+      TERAC_API_KEY: ${TERAC_API_KEY:-}   # optional: Terac MCP for the ceo + production bots
       CLAUDE_PROVIDER: ${CLAUDE_PROVIDER:-anthropic}
       CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-4-6}
       CODEX_PROVIDER: ${CODEX_PROVIDER:-openai-codex}
