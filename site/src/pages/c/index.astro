@@ -54,7 +54,7 @@ import Base from '../../layouts/Base.astro';
     try {
       const c = await getClaim(slug);
       const handle = (c.handle || '').replace(/^@/, '');
-      const price = c.price_cents || productByKey(c.product)?.price_cents || 0;
+      const price = productByKey(c.product)?.price_cents || c.price_cents || 0;
       fill('handle', handle);
       fill('price', dollars(price));
       document.title = `Trove · @${handle}, this one's yours.`;

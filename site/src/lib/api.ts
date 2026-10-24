@@ -3,10 +3,10 @@
 export type ProductKey = 'tweet' | 'milestone' | 'fullcolour' | 'team';
 
 export const PRODUCTS: { key: ProductKey; name: string; price_cents: number }[] = [
-  { key: 'tweet', name: 'Tweet Trophy', price_cents: 2900 },
-  { key: 'milestone', name: 'Milestone Plaque', price_cents: 4900 },
+  { key: 'tweet', name: 'Tweet Trophy', price_cents: 2099 },
+  { key: 'milestone', name: 'Milestone Plaque', price_cents: 2799 },
   { key: 'fullcolour', name: 'Full-Colour Receipt', price_cents: 8900 },
-  { key: 'team', name: 'Team Pack', price_cents: 24900 },
+  { key: 'team', name: 'Team Pack', price_cents: 15899 },
 ];
 
 export const COLOURS = ['black', 'white', 'red', 'blue', 'green', 'gold'] as const;

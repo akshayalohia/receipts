@@ -154,7 +154,7 @@ def test_worker_pass_and_public_api(tmp_path, fake_files):
         assert r == {"new": 4, "generated": 4, "placed": 4, "synced": 3}
         assert len(receipts.list_orders(PRINTING)) == 3 and len(receipts.list_orders(PLACED)) == 1
         st = receipts.stats()
-        assert st["orders"] == 4 and st["revenue_cents"] == 2900 + 4900 + 8900 + 24900
+        assert st["orders"] == 4 and st["revenue_cents"] == 41600  # fixture payment amounts
         assert st["founding_left"] == 96 and st["by_product"]["team"] == 1
         assert st["gross_margin_cents"] == st["revenue_cents"] - st["supplier_cost_cents"] - st["whop_fees_cents"]
         team = [o for o in receipts.list_orders() if o.product == "team"][0]

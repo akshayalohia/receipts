@@ -2,10 +2,10 @@
 import Base from '../layouts/Base.astro';
 
 const allProducts = [
-  { key: 'tweet', name: 'Tweet Trophy', price: '$29' },
-  { key: 'milestone', name: 'Milestone Plaque', price: '$49' },
+  { key: 'tweet', name: 'Tweet Trophy', price: '$20.99' },
+  { key: 'milestone', name: 'Milestone Plaque', price: '$27.99' },
   { key: 'fullcolour', name: 'Full-Colour Receipt', price: '$89' },
-  { key: 'team', name: 'Team Pack', price: '$249' },
+  { key: 'team', name: 'Team Pack', price: '$158.99' },
 ];
 // Full-Colour stays hidden until Craftcloud fulfilment works (set PUBLIC_FULLCOLOUR_ENABLED=1).
 const products = allProducts.filter((p) => p.key !== 'fullcolour' || import.meta.env.PUBLIC_FULLCOLOUR_ENABLED === '1');
@@ -50,7 +50,7 @@ const colours = [
           <div class="receipt" id="receipt" aria-live="polite"></div>
         </div>
         <div class="pay">
-          <button class="btn btn-primary pay-btn" type="button" id="pay-btn">Pay <span data-price>$49</span> and print it</button>
+          <button class="btn btn-primary pay-btn" type="button" id="pay-btn">Pay <span data-price>$27.99</span> and print it</button>
           <p class="mono small muted">Secure checkout by Whop.</p>
           <p class="err" id="pay-err" role="alert"></p>
           <div id="whop-checkout" class="whop"></div>
@@ -237,7 +237,7 @@ const colours = [
 
   // ---------- product switch ----------
   function colour() { return (document.querySelector('input[name="colour"]:checked') as HTMLInputElement)?.value || 'black'; }
-  function price() { return state.claim_price || productByKey(state.product)?.price_cents || 0; }
+  function price() { return productByKey(state.product)?.price_cents || state.claim_price || 0; } // catalogue price wins: Whop plan is per product
   function setProduct(p: ProductKey) {
     state.product = p;
     const radio = document.querySelector(`input[name="product"][value="${p}"]`) as HTMLInputElement | null;

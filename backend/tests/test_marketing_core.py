@@ -117,7 +117,7 @@ def test_tweet_claim_shape():
     c = build_claim("@maya", "tweet", "gold", tweet_url="https://x.com/maya/status/9", text="x" * 400,
                     likes=3000, name="Maya", date="Oct 24, 2026")
     validate_claim(c)
-    assert set(c) <= CLAIM_KEYS and c["handle"] == "maya" and c["price_cents"] == PRODUCTS["tweet"] == 2900
+    assert set(c) <= CLAIM_KEYS and c["handle"] == "maya" and c["price_cents"] == PRODUCTS["tweet"] == 2099
     assert len(c["text"]) == 280 and c["slug"].startswith("maya-")
     with_og = attach_og(c)
     validate_claim(with_og)
@@ -126,7 +126,7 @@ def test_tweet_claim_shape():
 
 def test_milestone_claim_and_errors():
     c = build_claim("dev", "milestone", number="10000 STARS!", label="GITHUB STARS")
-    assert c["price_cents"] == 4900 and len(c["number"]) == 10 and "tweet_url" not in c
+    assert c["price_cents"] == 2799 and len(c["number"]) == 10 and "tweet_url" not in c
     assert attach_og(c)["og_image_b64"]
     for kwargs in ({"product": "fullcolour"}, {"colour": "pink", "text": "a"}, {"product": "tweet"},
                    {"product": "milestone"}):

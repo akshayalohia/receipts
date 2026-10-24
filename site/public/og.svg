@@ -9,10 +9,10 @@
     <g font-family="DejaVu Sans Mono, monospace" font-size="20" fill="#151515">
       <text x="130" y="50" text-anchor="middle" font-weight="700">Trove</text>
       <line x1="20" y1="80" x2="240" y2="80" stroke="#151515" stroke-dasharray="6 6"/>
-      <text x="20" y="120">TWEET TROPHY</text><text x="240" y="120" text-anchor="end">$29</text>
-      <text x="20" y="160">MILESTONE</text><text x="240" y="160" text-anchor="end">$49</text>
+      <text x="20" y="120">TWEET TROPHY</text><text x="240" y="120" text-anchor="end">$20.99</text>
+      <text x="20" y="160">MILESTONE</text><text x="240" y="160" text-anchor="end">$27.99</text>
       <text x="20" y="200">FULL-COLOUR</text><text x="240" y="200" text-anchor="end">$89</text>
-      <text x="20" y="240">TEAM PACK</text><text x="240" y="240" text-anchor="end">$249</text>
+      <text x="20" y="240">TEAM PACK</text><text x="240" y="240" text-anchor="end">$158.99</text>
       <line x1="20" y1="280" x2="240" y2="280" stroke="#151515" stroke-dasharray="6 6"/>
       <text x="20" y="330" font-weight="700" fill="#c21f17">#001-#100</text>
     </g>

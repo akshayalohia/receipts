@@ -41,7 +41,7 @@ def test_metadata_maps_to_order(tmp_path):
     p = _pipeline(tmp_path, MockWhop())
     o = {x.product: x for x in p.poll_whop()}["milestone"]
     assert o.payment_id == "pay_mock_milestone_0002"
-    assert (o.status, o.colour, o.price_cents, o.amount_cents) == (PAID, "gold", 4900, 4900)
+    assert (o.status, o.colour, o.price_cents, o.amount_cents) == (PAID, "gold", 2799, 4900)
     assert o.order_ref == "SAMPLE02"
     assert o.email == "sample.buyer2@example.com"
     assert o.meta["number"] == "$10K MRR" and o.meta["label"] == "monthly recurring revenue"

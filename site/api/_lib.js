@@ -2,10 +2,10 @@
 // Files starting with "_" are not routed by Vercel.
 
 export const PRODUCTS = [
-  { key: "tweet", name: "Tweet Trophy", price_cents: 2900 },
-  { key: "milestone", name: "Milestone Plaque", price_cents: 4900 },
+  { key: "tweet", name: "Tweet Trophy", price_cents: 2099 },
+  { key: "milestone", name: "Milestone Plaque", price_cents: 2799 },
   { key: "fullcolour", name: "Full-Colour Receipt", price_cents: 8900 },
-  { key: "team", name: "Team Pack", price_cents: 24900 },
+  { key: "team", name: "Team Pack", price_cents: 15899 },
 ];
 
 export const COLOURS = ["black", "white", "red", "blue", "green", "gold"];

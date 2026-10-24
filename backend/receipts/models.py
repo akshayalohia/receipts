@@ -7,10 +7,10 @@ from pathlib import Path
 
 # docs/CONTRACT.md "Products" (single source of truth)
 PRODUCTS: dict[str, dict] = {
-    "tweet": {"name": "Tweet Trophy", "price_cents": 2900, "supplier": "slant", "qty": 1},
-    "milestone": {"name": "Milestone Plaque", "price_cents": 4900, "supplier": "slant", "qty": 1},
+    "tweet": {"name": "Tweet Trophy", "price_cents": 2099, "supplier": "slant", "qty": 1},
+    "milestone": {"name": "Milestone Plaque", "price_cents": 2799, "supplier": "slant", "qty": 1},
     "fullcolour": {"name": "Full-Colour Receipt", "price_cents": 8900, "supplier": "craftcloud", "qty": 1},
-    "team": {"name": "Team Pack", "price_cents": 24900, "supplier": "slant", "qty": 10},
+    "team": {"name": "Team Pack", "price_cents": 15899, "supplier": "slant", "qty": 10},
 }
 COLOURS = ("black", "white", "red", "blue", "green", "gold")
 FOUNDING_LIMIT = 100

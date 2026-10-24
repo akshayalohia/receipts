@@ -7,7 +7,7 @@ import re
 import secrets
 import textwrap
 
-PRODUCTS = {"tweet": 2900, "milestone": 4900, "fullcolour": 8900, "team": 24900}
+PRODUCTS = {"tweet": 2099, "milestone": 2799, "fullcolour": 8900, "team": 15899}
 CLAIM_PRODUCTS = {"tweet", "milestone"}          # claim pages only carry these two (CONTRACT)
 COLOURS = {"black", "white", "red", "blue", "green", "gold"}
 CLAIM_KEYS = {"slug", "handle", "product", "tweet_url", "text", "likes", "number", "label", "name", "date",

@@ -44,7 +44,7 @@ test("GET /api/config: plans, products, defaults, cache 60s", async () => {
   const body = JSON.parse(text);
   assert.deepEqual(body.plans, { tweet: "plan_t", milestone: null, fullcolour: null, team: "plan_x" });
   assert.deepEqual(body.products.map((p) => [p.key, p.price_cents]), [
-    ["tweet", 2900], ["milestone", 4900], ["fullcolour", 8900], ["team", 24900],
+    ["tweet", 2099], ["milestone", 2799], ["fullcolour", 8900], ["team", 15899],
   ]);
   assert.equal(body.ends_at, "2026-10-24T23:00:00-04:00");
   assert.equal(body.goal_cents, 200000);

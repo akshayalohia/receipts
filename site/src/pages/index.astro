@@ -3,10 +3,10 @@ import { CONTACT_TEXT } from '../lib/contact';
 import Base from '../layouts/Base.astro';
 
 const allProducts = [
-  { key: 'tweet', name: 'Tweet Trophy', price: '$29', line: 'Your tweet in raised letters, with the like count that proves it happened.' },
-  { key: 'milestone', name: 'Milestone Plaque', price: '$49', line: 'One number you worked for. Revenue, MRR, subscribers, stars, followers.' },
+  { key: 'tweet', name: 'Tweet Trophy', price: '$20.99', line: 'Your tweet in raised letters, with the like count that proves it happened.' },
+  { key: 'milestone', name: 'Milestone Plaque', price: '$27.99', line: 'One number you worked for. Revenue, MRR, subscribers, stars, followers.' },
   { key: 'fullcolour', name: 'Full-Colour Receipt', price: '$89', line: 'Your actual screenshot, printed in full colour on a desk stand.' },
-  { key: 'team', name: 'Team Pack', price: '$249', line: "Ten plaques with your team's name, for the people who got you there." },
+  { key: 'team', name: 'Team Pack', price: '$158.99', line: "Ten plaques with your team's name, for the people who got you there." },
 ];
 // Full-Colour stays hidden until Craftcloud fulfilment works (set PUBLIC_FULLCOLOUR_ENABLED=1).
 const products = allProducts.filter((p) => p.key !== 'fullcolour' || import.meta.env.PUBLIC_FULLCOLOUR_ENABLED === '1');
