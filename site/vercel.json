@@ -5,24 +5,52 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/**/*.js": { "maxDuration": 60, "includeFiles": "dist/c/index.html" }
+    "api/**/*.js": {
+      "maxDuration": 60,
+      "includeFiles": "dist/c/index.html"
+    }
   },
   "rewrites": [
-    { "source": "/c/:slug", "destination": "/api/og-claim?slug=:slug" },
-    { "source": "/c/:slug/:rest*", "destination": "/c/index.html" }
+    {
+      "source": "/api/render/:id",
+      "destination": "/api/render?id=:id"
+    },
+    {
+      "source": "/c/:slug",
+      "destination": "/api/og-claim?slug=:slug"
+    },
+    {
+      "source": "/c/:slug/:rest*",
+      "destination": "/c/index.html"
+    }
   ],
   "headers": [
     {
       "source": "/_astro/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     },
     {
       "source": "/api/config",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=60" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=60"
+        }
+      ]
     },
     {
       "source": "/api/stats",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=15" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=15"
+        }
+      ]
     }
   ]
 }
