@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import logging
+import math
+import re
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 
@@ -133,11 +136,49 @@ class Pipeline:
             log.warning("screenshot %s: HTTP %s", upload_id, r.status_code)
         return placeholder_png() if s.mock else None
 
+    def tweet_assets(self, meta: dict) -> tuple[dict, bytes | None]:
+        """Best effort, live mode only: fill what /make previewed but checkout metadata does not carry (avatar,
+        verified, reply count) from X's public syndication JSON, and fetch the avatar image. Never invents a
+        value: anything missing stays missing and the card simply leaves it out."""
+        if self.settings.mock:
+            return meta, None
+        meta = dict(meta)
+        mt = re.search(r"/status(?:es)?/(\d+)", meta.get("tweet_url", ""))
+        if mt and not meta.get("avatar_url"):
+            tid = mt.group(1)
+            token = re.sub(r"(0+|\.)", "", _base36((int(tid) / 1e15) * math.pi)) or "a"
+            try:
+                r = self.site.get("https://cdn.syndication.twimg.com/tweet-result",
+                                  params={"id": tid, "lang": "en", "token": token}, timeout=10)
+                data = r.json() if r.status_code == 200 else {}
+                user = data.get("user") or {}
+                av = user.get("profile_image_url_https") or ""
+                if isinstance(av, str) and av.startswith("https://pbs.twimg.com/"):
+                    meta["avatar_url"] = re.sub(r"_normal(\.\w+)$", r"_400x400\1", av)
+                if "verified" not in meta and (user.get("is_blue_verified") is True or user.get("verified") is True):
+                    meta["verified"] = "true"
+                cc_ = data.get("conversation_count")
+                if not meta.get("replies") and isinstance(cc_, int) and cc_ >= 0:
+                    meta["replies"] = str(cc_)
+            except Exception as e:  # noqa: BLE001 - extras are optional
+                log.warning("tweet extras %s: %s", tid, e)
+        avatar = None
+        url = meta.get("avatar_url", "")
+        if url and urlparse(url).scheme == "https" and urlparse(url).hostname in ("pbs.twimg.com", "abs.twimg.com"):
+            try:
+                r = self.site.get(url, timeout=10)
+                if r.status_code == 200 and r.content:
+                    avatar = r.content
+            except Exception as e:  # noqa: BLE001
+                log.warning("avatar %s: %s", url, e)
+        return meta, avatar
+
     def generate(self, order: Order) -> Path:
         image = self.fetch_screenshot(order.meta.get("upload_id", "")) if order.product == "fullcolour" else None
+        meta, avatar = self.tweet_assets(order.meta) if order.product == "tweet" else (order.meta, None)
         try:
-            files = generate_files(order.product, order.meta, order.colour, order.founding_number,
-                                   self.order_dir(order), image_bytes=image)
+            files = generate_files(order.product, meta, order.colour, order.founding_number,
+                                   self.order_dir(order), image_bytes=image, avatar_bytes=avatar)
         except GenerationError as e:
             self.set_status(order, FAILED, f"print file: {e}")
             raise
@@ -319,3 +360,25 @@ class Pipeline:
 def _rank(status: str) -> int:
     order = (PAID, GENERATED, PLACED, PRINTING, SHIPPED, DELIVERED)
     return order.index(status) if status in order else -1
+
+
+def _base36(x: float) -> str:
+    """JS Number.prototype.toString(36) for a positive float (integer part + up to 12 fraction digits)."""
+    digits = "0123456789abcdefghijklmnopqrstuvwxyz"
+    ip, fp = int(x), x - int(x)
+    out = ""
+    while True:
+        ip, r = divmod(ip, 36)
+        out = digits[r] + out
+        if not ip:
+            break
+    if fp:
+        out += "."
+        for _ in range(12):
+            fp *= 36
+            d = int(fp)
+            out += digits[d]
+            fp -= d
+            if not fp:
+                break
+    return out

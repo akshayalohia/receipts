@@ -17,8 +17,9 @@ FIXTURE = json.loads((Path(__file__).parents[1] / "receipts" / "fixtures" / "moc
 META = {p["metadata"]["product"]: p["metadata"] for p in FIXTURE[:4]}
 LONG_TWEET = ("Shipped it. " * 30)[:280]
 
-# CONTRACT "Print geometry": slab + raised text (tweet 6 + 0.8, plaques 8 + 1); full colour = base 15 + panel 100.
-EXPECTED = {"tweet": (120, 80, 6.8), "milestone": (140, 100, 9), "team": (140, 100, 9), "fullcolour": (150, 30, 115)}
+# CONTRACT "Print geometry": plaques = slab 8 + raised 1; full colour = base 15 + panel 100. The tweet trophy is one
+# piece: the 120 x 80 x 6 card standing at 75 deg in a 126 x 40 x 10 two-tier stand.
+EXPECTED = {"tweet": (126, 40, 84.8), "milestone": (140, 100, 9), "team": (140, 100, 9), "fullcolour": (150, 30, 115)}
 
 
 @pytest.fixture(scope="module")
@@ -39,6 +40,10 @@ def test_stl_bbox_matches_contract(files, product):
     mesh = trimesh.load(str(path), force="mesh")
     assert mesh.is_watertight and mesh.volume > 0
     assert mesh.extents == pytest.approx(EXPECTED[product], abs=1.0)
+    if product == "tweet":
+        assert "stand" not in files[product] and not (path.parent / "stand.stl").exists()  # one piece
+        assert len(mesh.split(only_watertight=False)) == 1
+        return
     # raised text exists above the slab top
     assert mesh.bounds[1][2] > EXPECTED[product][2] - 0.2
     stand = trimesh.load(str(files[product]["stand"]), force="mesh")
@@ -88,3 +93,85 @@ def test_fullcolour_without_screenshot_fails_when_live(tmp_path):
     with pytest.raises(Exception):
         p.generate(o)
     assert p.store.get(o.seq).status == FAILED
+
+
+# ---------------------------------------------------------------- tweet trophy layout
+
+def _avatar_png() -> bytes:
+    from PIL import Image, ImageDraw
+
+    img = Image.new("RGB", (200, 200), (30, 40, 60))
+    ImageDraw.Draw(img).ellipse((60, 30, 140, 120), fill=(230, 200, 170))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+TWEET_META = {"product": "tweet", "tweet_url": "https://x.com/sample_handle/status/1850000000000000001",
+              "tweet_text": "Shipped it.", "name": "Sample Author", "label": "@sample_handle"}
+
+
+def test_tweet_uses_real_counts_only():
+    from receipts.tweet_card import build_card
+
+    _, bare = build_card(TWEET_META)
+    assert bare["counts"] == {} and bare["handle"] == "@sample_handle" and bare["avatar"] == "initial"
+    _, full = build_card({**TWEET_META, "likes": "12,431", "replies": "312", "reposts": "1204", "views": "1218913",
+                          "verified": "true"})
+    assert full["counts"] == {"replies": "312", "reposts": "1,204", "likes": "12.4K", "views": "1.2M"}
+    assert full["verified"] is True
+
+
+def test_tweet_long_text_fits_and_strokes_are_printable():
+    from manifold3d import JoinType
+
+    from receipts.tweet_card import build_card, font
+
+    _, info = build_card({**TWEET_META, "tweet_text": LONG_TWEET})
+    assert info["cap"] >= 2.6 and not info["lines"][-1].endswith("…")
+    f = font()
+    for cap in (2.6, 2.8, 3.5):
+        cs = f.line("Shipped the thing, and it shipped back.", cap, 0, 0)
+        opened = cs.offset(-0.29, JoinType.Round).offset(0.29, JoinType.Round)
+        assert opened.area() / cs.area() > 0.8, cap  # strokes survive a 0.58 mm opening
+
+
+def test_tweet_avatar_relief_and_founding(tmp_path):
+    files = generate_files("tweet", {**TWEET_META, "likes": "5"}, "black", "42", tmp_path, avatar_bytes=_avatar_png())
+    assert files["info"]["avatar"] == "photo" and files["info"]["founding"] == "#042"
+    mesh = trimesh.load(str(files["main"]), force="mesh")
+    assert mesh.is_watertight and mesh.extents == pytest.approx(EXPECTED["tweet"], abs=1.0)
+    plain = generate_files("tweet", {**TWEET_META, "likes": "5"}, "black", None, tmp_path / "plain")
+    assert plain["info"]["avatar"] == "initial" and "founding" not in plain["info"]
+
+
+def test_tweet_name_truncates_without_overflow():
+    from receipts.tweet_card import build_card
+
+    _, info = build_card({**TWEET_META, "name": "A Very Long Display Name That Would Run Into The X Logo Mark"})
+    assert info["name"].endswith("…")
+    _, info = build_card({**TWEET_META, "name": "Sample Author With A Long Name"})
+    assert not info["name"].endswith("…")
+
+
+def test_tweet_assets_fill_from_syndication(tmp_path):
+    seen = []
+
+    def handler(req: httpx.Request):
+        seen.append(str(req.url))
+        if req.url.host == "cdn.syndication.twimg.com":
+            return httpx.Response(200, json={"conversation_count": 18, "user": {
+                "is_blue_verified": True, "profile_image_url_https": "https://pbs.twimg.com/profile_images/1/a_normal.jpg"}})
+        if req.url.host == "pbs.twimg.com":
+            return httpx.Response(200, content=_avatar_png())
+        return httpx.Response(404)
+
+    s = Settings(data_dir=tmp_path, mock=False)
+    p = Pipeline(s, whop=MockWhop([]), slant=object(), craftcloud=object(),
+                 site=httpx.Client(transport=httpx.MockTransport(handler)))
+    meta, avatar = p.tweet_assets({**TWEET_META, "likes": "7"})
+    assert meta["avatar_url"].endswith("a_400x400.jpg") and meta["verified"] == "true" and meta["replies"] == "18"
+    assert meta["likes"] == "7" and "reposts" not in meta and avatar
+    # mock mode never touches the network
+    p2 = Pipeline(Settings(data_dir=tmp_path / "m", mock=True), whop=MockWhop([]), slant=object(), craftcloud=object())
+    assert p2.tweet_assets(TWEET_META) == (TWEET_META, None)

@@ -31,12 +31,13 @@ class Site:
 @pytest.fixture
 def fake_files(monkeypatch):
     """Pipeline tests don't need real CAD (covered in test_receipts_generate); write tiny stand-ins."""
-    def fake(product, meta, colour, founding, out_dir, image_bytes=None):
+    def fake(product, meta, colour, founding, out_dir, image_bytes=None, avatar_bytes=None):
         out_dir.mkdir(parents=True, exist_ok=True)
-        main = out_dir / ("receipt_fullcolour.zip" if product == "fullcolour" else f"{product}_card.stl")
+        name = {"fullcolour": "receipt_fullcolour.zip", "tweet": "tweet_trophy.stl"}.get(product, f"{product}_card.stl")
+        main = out_dir / name
         main.write_bytes(b"solid x\nendsolid x\n")
         res = {"main": main}
-        if product != "fullcolour":
+        if product not in ("fullcolour", "tweet"):  # the tweet trophy is one piece (card + stand)
             (out_dir / "stand.stl").write_bytes(b"solid s\nendsolid s\n")
             res["stand"] = out_dir / "stand.stl"
         return res
@@ -83,7 +84,7 @@ def test_happy_path_events_and_sync(tmp_path, fake_files):
     so = p.place(p.store.get(tweet.seq))
     assert so.placed and so.supplier == "slant" and so.supplier_order_id.startswith("SLANT_")
     o = p.store.get(tweet.seq)
-    assert o.status == PLACED and o.cost_cents == 770 and o.shipping_cents == 550  # card 6.50 + stand 1.20
+    assert o.status == PLACED and o.cost_cents == 650 and o.shipping_cents == 550  # one-piece trophy 6.50 (mock)
     assert p.slant.processed == [so.supplier_order_id]
     seen = []
     for _ in range(4):

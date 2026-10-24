@@ -1,14 +1,13 @@
 """CadQuery print files for the four products (docs/CONTRACT.md "Print geometry"). Units: mm.
 
-Slant products are single-body STLs printed flat (front face up, raised text, founding number engraved
+Slant products are single-body STLs. Plaques print flat (front face up, raised text, founding number engraved
 into the bed face) plus a separate slotted 75° stand STL, since Slant takes STL only and charges extra
-for multi-body files. Full colour is an OBJ + MTL + PNG zip with the screenshot on the panel's front face.
+for multi-body files. The Tweet Trophy is one piece, card standing in its stand (receipts/tweet_card.py). Full colour is an OBJ + MTL + PNG zip with the screenshot on the panel's front face.
 """
 from __future__ import annotations
 
 import io
 import re
-import textwrap
 import zipfile
 from functools import lru_cache
 from pathlib import Path
@@ -22,7 +21,6 @@ CAP_RATIO = 0.729  # DejaVu Sans Bold cap height / font size (measured)
 STAND_ANGLE_DEG = 75.0
 ENGRAVE_MM = 0.6
 
-TWEET = {"w": 120.0, "h": 80.0, "t": 6.0, "r": 3.0, "raise": 0.8}
 MILESTONE = {"w": 140.0, "h": 100.0, "t": 8.0, "r": 3.0, "raise": 1.0, "border_in": 2.0, "border_w": 1.5}
 FULLCOLOUR = {"panel_w": 150.0, "panel_h": 100.0, "panel_t": 4.0, "base_w": 150.0, "base_d": 30.0, "base_h": 15.0}
 COLOUR_RGB = {"black": (0.08, 0.08, 0.08), "white": (0.95, 0.95, 0.95), "red": (0.78, 0.12, 0.12),
@@ -120,71 +118,17 @@ def make_stand(card_w: float, card_t: float, out: Path) -> Path:
 
 # ---------------------------------------------------------------- tweet trophy
 
-def _wrap_block(text: str, max_w: float, max_h: float, cap_max=7.0, cap_min=4.0) -> tuple[str, float]:
-    cap = cap_max
-    while True:
-        size = cap / CAP_RATIO
-        per_line = max(8, int(max_w / (0.66 * size)))
-        lines: list[str] = []
-        for para in text.split("\n"):
-            lines.extend(textwrap.wrap(para, per_line) or [""])
-        while lines and not lines[-1]:
-            lines.pop()
-        if len(lines) * 1.17 * size <= max_h or cap <= cap_min:
-            return "\n".join(lines), cap
-        cap = round(cap - 0.5, 2)
+def tweet_trophy(meta: dict, founding: str | None, out: Path, avatar: bytes | None = None) -> tuple[Path, dict]:
+    """One-piece card + stand laid out like the X post (see receipts/tweet_card.py). Returns (path, layout info)."""
+    from .tweet_card import TweetCardError, tweet_trophy_mesh
 
-
-def tweet_trophy(meta: dict, founding: str | None, out: Path) -> Path:
-    import cadquery as cq
-
-    p = TWEET
-    W, H, T, R = p["w"], p["h"], p["t"], p["raise"]
-    m = 6.0
-    x0, x1, ytop, ybot = -W / 2 + m, W / 2 - m, H / 2 - m, -H / 2 + m
-    body = _rounded_slab(cq, W, H, T, p["r"])
-    parts = []
-    name = clean_text(meta.get("name") or meta.get("author_name") or "")
-    handle = clean_text(meta.get("handle") or _handle_from_url(meta.get("tweet_url", "")))
-    if handle and not handle.startswith("@"):
-        handle = "@" + handle
-    y = ytop
-    if name:
-        wp, _ = _text(name, 4.5, R, max_w=(x1 - x0) * 0.65)
-        wp = _place(wp, x0, y, T)
-        parts.append(wp)
-        y = _bb(wp).ymin - 1.8
-    if handle:
-        wp, _ = _text(handle, 3.5, R, max_w=(x1 - x0) * 0.65)
-        wp = _place(wp, x0, y, T)
-        parts.append(wp)
-        y = _bb(wp).ymin
-    footer_cap = 4.0
-    likes = clean_text(meta.get("likes", ""))
-    if likes:
-        wp, _ = _text(f"♥ {likes}", footer_cap, R, max_w=(x1 - x0) * 0.45)
-        parts.append(_place(wp, x0, ybot, T, "left", "bottom"))
-    date = clean_text(meta.get("date", ""))
-    if date:
-        wp, _ = _text(date, footer_cap, R, max_w=(x1 - x0) * 0.45)
-        parts.append(_place(wp, x1, ybot, T, "right", "bottom"))
-    body_top, body_bot = y - 3.0, ybot + footer_cap + 3.0
-    text = clean_text((meta.get("tweet_text") or meta.get("text") or "")[:280], keep_newlines=True)
-    if text:
-        block, cap = _wrap_block(text, x1 - x0, body_top - body_bot)
-        # Below 4 mm cap the text is scaled to fit: very long tweets only.
-        wp, _ = _text(block, cap, R, max_w=x1 - x0, max_h=body_top - body_bot)
-        parts.append(_place(wp, x0, body_top, T))
-    for wp in parts:
-        body = body.union(wp)
-    if founding:
-        body = _engrave_back(body, f"#{founding}", W / 2 - 18, -H / 2 + 10)
-    return _export_stl(body, out, "tweet")
-
-
-def _handle_from_url(url: str) -> str:
-    mt = re.search(r"(?:x|twitter)\.com/([A-Za-z0-9_]{1,15})/status", url or "")
-    return mt.group(1) if mt else ""
+    try:
+        mesh, info = tweet_trophy_mesh(meta, founding, avatar)
+    except TweetCardError as e:
+        raise GenerationError(str(e)) from e
+    out.parent.mkdir(parents=True, exist_ok=True)
+    mesh.export(str(out), file_type="stl")
+    return out, info
 
 
 # ---------------------------------------------------------------- milestone plaque / team pack
@@ -329,8 +273,8 @@ def fullcolour_receipt(meta: dict, founding: str | None, out: Path, image_bytes:
 # ---------------------------------------------------------------- dispatch
 
 def generate_files(product: str, meta: dict, colour: str, founding: str | None, out_dir: Path,
-                   image_bytes: bytes | None = None) -> dict[str, Path]:
-    """Returns {"main": path, "stand": path?}."""
+                   image_bytes: bytes | None = None, avatar_bytes: bytes | None = None) -> dict:
+    """Returns {"main": path, "stand": path?, "info": dict?}. Tweet trophies are one piece (no stand file)."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     try:
@@ -339,9 +283,12 @@ def generate_files(product: str, meta: dict, colour: str, founding: str | None, 
                 raise GenerationError("fullcolour order has no screenshot")
             return {"main": fullcolour_receipt(meta, founding, out_dir / "receipt_fullcolour.zip", image_bytes, colour)}
         if product == "tweet":
-            main = tweet_trophy(meta, founding, out_dir / "tweet_card.stl")
-            stand = make_stand(TWEET["w"], TWEET["t"], out_dir / "stand.stl")
-        elif product == "milestone":
+            main, info = tweet_trophy(meta, founding, out_dir / "tweet_trophy.stl", avatar_bytes)
+            stale = out_dir / "stand.stl"  # older two-piece tweet files: never upload a leftover stand
+            if stale.exists():
+                stale.unlink()
+            return {"main": main, "info": info}
+        if product == "milestone":
             main = milestone_plaque(meta, founding, out_dir / "milestone_plaque.stl")
             stand = make_stand(MILESTONE["w"], MILESTONE["t"], out_dir / "stand.stl")
         elif product == "team":
