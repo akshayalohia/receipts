@@ -55,6 +55,34 @@ import Base from '../layouts/Base.astro';
         <section class="card"><h2>By source</h2><table class="mini" id="by-source"></table></section>
       </div>
 
+      <section class="card hold" id="hold">
+        <div class="card-head">
+          <h2>Orders on hold <span class="count">(1)</span></h2>
+          <span class="pill held">On hold · waiting on Terac</span>
+        </div>
+        <div class="hold-row" id="hold-row" role="button" tabindex="0">
+          <img class="thumb big-thumb" id="hold-thumb" alt="" loading="lazy" />
+          <div class="hold-main">
+            <p class="hold-title"><strong>Custom figure</strong> <span class="muted">#HOLD-001</span></p>
+            <p class="hold-sub">Cartoon monkey eating a banana · 75 mm · black PETG · round base</p>
+            <p class="hold-why"><strong>Why it's held:</strong> thin tail + banana and possible overhangs. The production bot asked 2 vetted 3D-printing experts on Terac whether it prints cleanly as designed. Nothing goes to the printer until their verdict is back.</p>
+            <ol class="steps">
+              <li class="done"><span>Order placed</span><small id="hs-placed"></small></li>
+              <li class="done"><span>Terac request sent</span><small id="hs-sent"></small></li>
+              <li class="done"><span>Terac pricing back: $15.00 (2 experts × $7.50)</span><small id="hs-priced"></small></li>
+              <li class="wait"><span>Waiting for expert verdicts</span><small>print / fix / no-print</small></li>
+              <li class="todo"><span>Release to Slant 3D (or fix model and re-check)</span><small>ships in 2-7 days after release</small></li>
+            </ol>
+          </div>
+          <div class="hold-money">
+            <p class="r-big">$19.99</p>
+            <p class="muted">quoted · not counted in revenue</p>
+            <p class="muted">est. cost $10.50 + Terac $15.00</p>
+            <a class="hold-link" href="https://terac.com/trove-mvmo6zcv/receipts-agent-escalations-mvmqq9ct/opportunities/i6pncihzm9x57zq5bhd4wsao" target="_blank" rel="noopener">Terac request ↗</a>
+          </div>
+        </div>
+      </section>
+
       <section class="card">
         <div class="card-head">
           <h2>Orders <span class="count" id="orders-count"></span></h2>
@@ -171,6 +199,27 @@ import Base from '../layouts/Base.astro';
   .d-info .mini td:last-child { text-align: left; padding-left: 0.75rem; overflow-wrap: anywhere; }
   .d-info .mini td:first-child { color: var(--ink-2); white-space: nowrap; font: 400 0.8rem var(--mono); }
   .d-links { margin-top: 0.75rem; display: flex; gap: 1rem; flex-wrap: wrap; font: 400 0.85rem var(--mono); }
+  .hold { border-color: #c98a00; box-shadow: 4px 4px 0 #f6d55c; }
+  .pill.held { color: #a36b00; background: #fff4cc; border-color: #c98a00; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.55; } }
+  .hold-row { display: grid; grid-template-columns: 96px 1fr auto; gap: 1rem; margin-top: 0.75rem; cursor: pointer; align-items: start; }
+  @media (max-width: 44rem) { .hold-row { grid-template-columns: 72px 1fr; } .hold-money { grid-column: 1 / -1; text-align: left !important; } }
+  .big-thumb { width: 96px; height: 96px; }
+  .hold-title { font-size: 1rem; }
+  .hold-sub { color: var(--ink-2); font: 400 0.82rem var(--mono); margin-top: 0.2rem; }
+  .hold-why { margin-top: 0.6rem; font-size: 0.9rem; max-width: 46rem; }
+  .steps { list-style: none; padding: 0; margin: 0.75rem 0 0; display: grid; gap: 0.3rem; }
+  .steps li { display: flex; gap: 0.6rem; align-items: baseline; font-size: 0.88rem; }
+  .steps li::before { content: '✓'; font: 700 0.8rem var(--mono); width: 1.1rem; color: #2d8550; }
+  .steps li.wait::before { content: '◷'; color: #a36b00; }
+  .steps li.wait span { font-weight: 700; color: #a36b00; }
+  .steps li.todo::before { content: '○'; color: var(--ink-2); }
+  .steps li.todo { color: var(--ink-2); }
+  .steps small { color: var(--ink-2); font: 400 0.75rem var(--mono); }
+  .hold-money { text-align: right; }
+  .hold-money .r-big { font: 900 1.8rem/1 var(--display); }
+  .hold-money .muted { color: var(--ink-2); font: 400 0.75rem var(--mono); margin-top: 0.25rem; }
+  .hold-link { display: inline-block; margin-top: 0.6rem; font: 700 0.8rem var(--mono); }
 </style>
 
 <script>
@@ -412,7 +461,7 @@ import Base from '../layouts/Base.astro';
     const when = o.paid_at || o.created_at;
     const rows: [string, unknown][] = [
       ['Status', o.status.replace('_', ' ')], ['Placed', when ? et(when, { dateStyle: 'medium', timeStyle: 'short' }) + ' ET (' + ago(when) + ')' : '–'],
-      ['Paid', o.gross_cents ? usd(o.gross_cents) : `${usd(o.attempted_cents)} (not paid)`],
+      ['Paid', o.gross_cents ? usd(o.gross_cents) : o.status === 'on_hold' ? `${usd(o.attempted_cents)} (on hold, not counted in revenue yet)` : `${usd(o.attempted_cents)} (not paid)`],
       ['Whop fee', o.gross_cents ? usd(o.fee_cents) + (o.fee_actual ? ' (actual)' : ' (est.)') : '–'],
       ['Print + ship', o.gross_cents ? `${usd(o.cost_cents)} (est., ${o.cost_source})` : '–'],
       ['Profit', o.gross_cents ? usd(o.profit_cents) + (o.gross_cents ? ` (${Math.round((o.profit_cents / o.gross_cents) * 100)}%)` : '') : '–'],
@@ -421,7 +470,7 @@ import Base from '../layouts/Base.astro';
       ['Volume', o.volume_cm3 ? `${o.volume_cm3} cm³` : ''], ['Tweet', o.tweet_text], ['Likes', o.likes], ['Number', o.number], ['Label', o.label],
       ['Name on item', o.name], ['Team', o.team], ['Gift', o.gift ? `from ${o.gift.from}${o.gift.note ? ': ' + o.gift.note : ''}` : ''],
       ['Customer', o.customer.name], ['Email', o.customer.email], ['Ships to', [o.customer.city, o.customer.state].filter(Boolean).join(', ')],
-      ['Source', o.source], ['Failure', o.failure], ['Whop payment', o.id],
+      ['Source', o.source], [o.status === 'on_hold' ? 'Hold' : 'Failure', o.failure], ['Whop payment', o.id],
     ];
     $('d-table').innerHTML = rows.filter(([, v]) => v != null && v !== '').map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('');
     const links: string[] = [];
@@ -429,6 +478,7 @@ import Base from '../layouts/Base.astro';
     if (glb) links.push(`<a href="${esc(glb)}" target="_blank" rel="noopener">Download GLB ↗</a>`);
     if (safeUrl(o.tweet_url)) links.push(`<a href="${esc(safeUrl(o.tweet_url))}" target="_blank" rel="noopener">Tweet ↗</a>`);
     if (o.claim_slug) links.push(`<a href="/c/${encodeURIComponent(o.claim_slug)}" target="_blank" rel="noopener">Claim page ↗</a>`);
+    if (o.status === 'on_hold') links.push(`<a href="https://terac.com/trove-mvmo6zcv/receipts-agent-escalations-mvmqq9ct/opportunities/i6pncihzm9x57zq5bhd4wsao" target="_blank" rel="noopener">Terac request ↗</a>`);
     $('d-links').innerHTML = links.join('');
     $<HTMLImageElement>('d-concept').src = img || '';
     $('d-tabs').hidden = !(glb && img);
@@ -442,4 +492,26 @@ import Base from '../layouts/Base.astro';
     } else if (img) view('img');
     else { $('d-stage').hidden = false; $('d-concept').hidden = true; $('d-stage').innerHTML = `<p class="empty" style="padding:1rem">No render stored for this order (${esc(o.product_name)}).</p>`; }
   }
+  // ---------- hard-coded held order (Terac pre-production expert check) ----------
+  const HELD = {
+    id: 'hold-terac-i6pncihzm9x57zq5bhd4wsao', ref: 'HOLD-001', product: 'custom', product_name: 'Custom figure',
+    status: 'on_hold', placed: '2026-10-24T19:47:00Z', sent: '2026-10-24T19:53:39Z', priced: '2026-10-24T19:59:50Z',
+    concept: 'https://v3b.fal.media/files/b/0aafb26c/t575MLHdSS-ygVTiii5-j.jpg',
+    glb: 'https://v3b.fal.media/files/b/0aafb274/FXR0UgOsW0WYwUphcxRfq_mesh-1792866441-84407.glb',
+    height_mm: 75, size: 'S', colour: 'black', base: 'round',
+    gross_cents: 0, attempted_cents: 1999, fee_cents: 0, cost_cents: 1050, profit_cents: 0, refunded_cents: 0,
+    fee_actual: false, cost_source: 'quote', source: 'site',
+    customer: { name: '', email: '', city: '', state: '' },
+    failure: 'On hold: waiting on Terac expert verdicts (request i6pncihzm9x57zq5bhd4wsao, 2 experts, $15.00 quoted)',
+  };
+  const stamp = (iso: string) => et(iso, { hour: 'numeric', minute: '2-digit' }) + ' ET · ' + ago(iso);
+  function renderHold() {
+    $<HTMLImageElement>('hold-thumb').src = HELD.concept;
+    $('hs-placed').textContent = stamp(HELD.placed);
+    $('hs-sent').textContent = stamp(HELD.sent);
+    $('hs-priced').textContent = stamp(HELD.priced);
+  }
+  renderHold(); setInterval(renderHold, 30_000);
+  $('hold-row').addEventListener('click', () => showDetail(HELD));
+  $('hold-row').addEventListener('keydown', (e) => { if (e.key === 'Enter') showDetail(HELD); });
 </script>
