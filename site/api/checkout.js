@@ -3,7 +3,7 @@
 // for exactly that price. The browser mounts Whop's embedded checkout with the returned plan id.
 // Custom orders are recorded with full metadata; they are NOT auto-sent to a supplier.
 import { json, error } from "./_lib.js";
-import { decodeJob, cachedGeom, priceFor, SIZES, BASES, COLOURS } from "./_render.js";
+import { decodeJob, cachedGeom, saveGeom, priceFor, jobStatus, makePreview, SIZES, BASES, COLOURS } from "./_render.js";
 
 export async function POST(request) {
   const env = process.env;
@@ -14,8 +14,25 @@ export async function POST(request) {
   const size = SIZES.some((s) => s.id === b.size) ? b.size : "M";
   const base = BASES.includes(b.base) ? b.base : "round";
   const colour = Object.hasOwn(COLOURS, b.colour) ? b.colour : "grey";
-  const cached = await cachedGeom(job);
-  if (!cached) return error(409, "That model isn't ready yet. Wait for it to finish, then try again.");
+  let cached = await cachedGeom(job);
+  if (!cached) {
+    // No shared KV (or a cold cache): measure the mesh again here. ~1-2 s.
+    try {
+      let rawUrl = "/examples/dog.glb";
+      if (!job.demo) {
+        const s = await jobStatus(job);
+        if (s.state !== "done") return error(409, "That model isn't ready yet. Wait for it to finish, then try again.");
+        rawUrl = s.glbUrl;
+      }
+      const raw = new Uint8Array(await (await fetch(new URL(rawUrl, request.url))).arrayBuffer());
+      const pv = await makePreview(raw);
+      cached = { rawGlbUrl: rawUrl, geom: pv.geom };
+      await saveGeom(job, cached);
+    } catch (e) {
+      console.error("checkout measure failed", String(e?.message || e));
+      return error(502, "Couldn't price that model. Try again in a moment.");
+    }
+  }
   const q = priceFor(cached.geom, size, base);
   const title = `Custom 3D print ${q.heightMm}mm`.slice(0, 30);
   const res = await fetch("https://api.whop.com/api/v1/plans", {
