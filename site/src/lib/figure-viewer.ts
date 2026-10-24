@@ -22,7 +22,7 @@ export function mountFigureViewer(el: HTMLElement): FigureViewer {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 0.9;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFSoftShadowMap;
   el.appendChild(renderer.domElement);
@@ -30,8 +30,9 @@ export function mountFigureViewer(el: HTMLElement): FigureViewer {
   const scene = new Scene();
   const pmrem = new PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  (scene as any).environmentIntensity = 0.55; // RoomEnvironment is bright: keep colours true
   scene.add(new HemisphereLight(0xffffff, 0xd8d2c4, 0.35));
-  const key = new DirectionalLight(0xffffff, 2.2);
+  const key = new DirectionalLight(0xffffff, 2.6);
   key.position.set(2.5, 4, 3);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
