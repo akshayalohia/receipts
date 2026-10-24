@@ -343,13 +343,17 @@ function tweetSpecs(p: Norm): PartSpec[] {
       const boxTop = avY - av - 3.2;
       const boxBottom = (hasDate ? dateBase + dateCap : dividerY) + 2.6;
       // Leave room for descenders on the last line (fitBlock budgets cap height only).
-      const b = fitBlock(font, text, innerW, boxTop - boxBottom - 2, 2.6, 5.5);
+      // Short tweets get big type (up to 9 mm caps), matching the print file (backend/receipts/tweet_card.py).
+      const b = fitBlock(font, text, innerW, boxTop - boxBottom - 2, 2.6, 9);
       // X keeps generous leading; stretch a little when there is room.
-      const free = boxTop - boxBottom - 2 - (b.cap + Math.max(0, b.lines.length - 1) * b.lineStep);
-      const step = b.lines.length > 1 ? b.lineStep + Math.min(free / (b.lines.length - 1), b.cap * 0.35) : b.lineStep;
+      let free = boxTop - boxBottom - 2 - (b.cap + Math.max(0, b.lines.length - 1) * b.lineStep);
+      const extra = b.lines.length > 1 ? Math.min(free / (b.lines.length - 1), b.cap * 0.35) : 0;
+      const step = b.lineStep + extra;
+      free -= extra * Math.max(0, b.lines.length - 1);
+      const top = boxTop - Math.max(0, free) * 0.4;
       const g = new Group();
       b.lines.forEach((line, i) => {
-        const mesh = textMesh(font, line, b.cap, R, mat, left, boxTop - b.cap - i * step);
+        const mesh = textMesh(font, line, b.cap, R, mat, left, top - b.cap - i * step);
         if (mesh) g.add(mesh);
       });
       return g.children.length ? g : null;

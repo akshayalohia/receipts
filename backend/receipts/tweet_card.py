@@ -568,11 +568,15 @@ def _layout(meta: dict, avatar_hm: np.ndarray | None, founding: str | None):
         box_top = av_y - av - 3.2
         box_bottom = (date_base + date_cap if date else divider_y) + 2.6
         avail = box_top - box_bottom - 2.0  # room for descenders on the last line
-        lines, cap, step = F.fit_block(text, inner_w, avail, 2.6, 5.5)
+        # Short tweets get big type (up to 9 mm caps) so the card never looks empty; long ones shrink to 2.6 mm.
+        lines, cap, step = F.fit_block(text, inner_w, avail, 2.6, 9.0)
         free = avail - (cap + max(0, len(lines) - 1) * step)
         if len(lines) > 1:
-            step += min(free / (len(lines) - 1), cap * 0.35)
-        add(_union([F.line(ln, cap, left, box_top - cap - i * step) for i, ln in enumerate(lines) if ln.strip()]))
+            extra = min(free / (len(lines) - 1), cap * 0.35)
+            step += extra
+            free -= extra * (len(lines) - 1)
+        top = box_top - max(0.0, free) * 0.4  # sit slightly above centre in the leftover space
+        add(_union([F.line(ln, cap, left, top - cap - i * step) for i, ln in enumerate(lines) if ln.strip()]))
         info.update(lines=lines, cap=cap)
 
     # footer: timestamp, divider groove, action row (real counts only)
