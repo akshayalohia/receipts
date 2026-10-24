@@ -14,7 +14,7 @@ test("GET /api/stats: no key -> zeros, cache 15s, no fetch", async () => {
     assert.equal(res.headers.get("cache-control"), "public, max-age=15");
     assert.deepEqual(await res.json(), {
       revenue_cents: 0, orders: 0, founding_left: 100,
-      ends_at: "2026-10-24T23:00:00-04:00", goal_cents: 200000,
+      ends_at: "2026-10-24T18:45:00-04:00", goal_cents: 200000,
     });
     assert.equal(stub.calls.length, 0);
   } finally {

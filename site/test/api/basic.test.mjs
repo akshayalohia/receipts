@@ -46,7 +46,7 @@ test("GET /api/config: plans, products, defaults, cache 60s", async () => {
   assert.deepEqual(body.products.map((p) => [p.key, p.price_cents]), [
     ["tweet", 2099], ["milestone", 2799], ["fullcolour", 8900], ["team", 15899],
   ]);
-  assert.equal(body.ends_at, "2026-10-24T23:00:00-04:00");
+  assert.equal(body.ends_at, "2026-10-24T18:45:00-04:00");
   assert.equal(body.goal_cents, 200000);
 });
 

@@ -13,7 +13,7 @@ export const COLOURS = ['black', 'white', 'red', 'blue', 'green', 'gold'] as con
 export type Colour = (typeof COLOURS)[number];
 
 export const DEFAULT_GOAL_CENTS = 200000;
-export const DEFAULT_ENDS_AT = '2026-10-24T23:00:00-04:00';
+export const DEFAULT_ENDS_AT = '2026-10-24T18:45:00-04:00';
 
 export interface Config {
   plans: Partial<Record<ProductKey, string>>;
