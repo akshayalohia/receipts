@@ -17,11 +17,11 @@ interface Props {
   noindex?: boolean;
 }
 const SITE = 'https://trovefactory.shop';
-const tagline = 'We 3D print your receipts.';
+const tagline = 'Type anything. We 3D print it.';
 const {
   title = `Trove · ${tagline}`,
-  description = "Your viral tweet. Your first $10k month. Your 10,000th subscriber. Paste it in, turn it around in 3D, and we'll ship it to your desk.",
-  ogImage = '/og.png',
+  description = "Describe anything or upload a photo. Get a 3D model in seconds, then we print it and ship it to you.",
+  ogImage = '/og-3d.png',
   noindex = false,
 } = Astro.props;
 const canonical = new URL(Astro.url.pathname, SITE).href;
