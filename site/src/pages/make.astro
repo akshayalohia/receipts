@@ -1,0 +1,540 @@
+---
+import Base from '../layouts/Base.astro';
+
+const products = [
+  { key: 'tweet', name: 'Tweet Trophy', price: '$29' },
+  { key: 'milestone', name: 'Milestone Plaque', price: '$49' },
+  { key: 'fullcolour', name: 'Full-Colour Receipt', price: '$89' },
+  { key: 'team', name: 'Team Pack', price: '$249' },
+];
+const colours = [
+  { key: 'black', name: 'Black', hex: '#1b1b1b' },
+  { key: 'white', name: 'White', hex: '#f7f7f4' },
+  { key: 'red', name: 'Red', hex: '#c21f17' },
+  { key: 'blue', name: 'Blue', hex: '#1f4fbf' },
+  { key: 'green', name: 'Green', hex: '#1e7a3c' },
+  { key: 'gold', name: 'Gold', hex: '#c9a227' },
+];
+---
+<Base title="receipts · Make it yours">
+  <div class="wrap make" id="make">
+    <section class="blk blk-a" aria-labelledby="s1">
+      <h2 id="s1"><span class="n">1</span> What are we printing</h2>
+      <div class="seg" role="radiogroup" aria-labelledby="s1">
+        {products.map((p, i) => (
+          <label class="seg-opt">
+            <input type="radio" name="product" value={p.key} checked={i === 1} />
+            <span class="seg-name">{p.name}</span>
+            <span class="seg-price mono">{p.price}</span>
+          </label>
+        ))}
+      </div>
+      <p class="mono small gift-sub" id="gift-sub" hidden>Know them? Send it to them as a gift. We'll ship it with a card that says who it's from.</p>
+    </section>
+
+    <aside class="side">
+      <section class="blk blk-b" aria-label="3D preview">
+        <div class="stage" id="stage">
+          <div class="stage-empty">TODO(preview): 3D preview</div>
+        </div>
+        <div class="stage-foot">
+          <p class="mono small muted">Drag to turn it. This is what we'll print.</p>
+          <button class="btn" type="button" id="save-preview">Save the preview</button>
+        </div>
+      </section>
+
+      <section class="blk blk-e" aria-label="Order summary">
+        <div class="receipt-wrap">
+          <div class="receipt" id="receipt" aria-live="polite"></div>
+        </div>
+        <div class="pay">
+          <button class="btn btn-primary pay-btn" type="button" id="pay-btn">Pay <span data-price>$49</span> and print it</button>
+          <p class="mono small muted">Secure checkout by Whop.</p>
+          <p class="err" id="pay-err" role="alert"></p>
+          <div id="whop-checkout" class="whop"></div>
+        </div>
+      </section>
+    </aside>
+
+    <section class="blk blk-c" aria-labelledby="s2">
+      <h2 id="s2"><span class="n">2</span> Make it yours</h2>
+      <form class="fields" id="fields" novalidate onsubmit="return false">
+        <div class="group" data-for="tweet">
+          <div class="field">
+            <label for="f-tweet-url">Tweet link</label>
+            <input id="f-tweet-url" name="tweet_url" type="url" inputmode="url" autocomplete="off" placeholder="https://x.com/..." />
+            <p class="hint mono" id="tweet-status" aria-live="polite"></p>
+            <blockquote class="tweet-found mono" id="tweet-found" hidden></blockquote>
+          </div>
+          <div class="field">
+            <label for="f-likes">Like count (we'll fill this in if we can)</label>
+            <input id="f-likes" name="likes" type="text" inputmode="numeric" autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="group" data-for="milestone">
+          <div class="field">
+            <label for="f-number">The number (e.g. $10,000)</label>
+            <input id="f-number" name="number" type="text" maxlength="10" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="f-label">What it is (e.g. MRR, subscribers, GitHub stars)</label>
+            <input id="f-label" name="label" type="text" maxlength="40" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="f-name">Name or handle</label>
+            <input id="f-name" name="name" type="text" maxlength="60" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="f-date">Date</label>
+            <input id="f-date" name="date" type="text" maxlength="30" autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="group" data-for="fullcolour">
+          <div class="field">
+            <label for="f-upload">Upload your screenshot</label>
+            <input id="f-upload" name="upload" type="file" accept="image/png,image/jpeg,image/webp" />
+            <p class="hint mono" id="upload-status" aria-live="polite"></p>
+          </div>
+          <div class="field">
+            <label for="f-name-fc">Name or handle</label>
+            <input id="f-name-fc" name="name_fc" type="text" maxlength="60" autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="group" data-for="team">
+          <div class="field">
+            <label for="f-team">Team name</label>
+            <input id="f-team" name="team" type="text" maxlength="40" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="f-subline">Line under it (e.g. Winners, Zero-Human Hackathon 2026)</label>
+            <input id="f-subline" name="subline" type="text" maxlength="60" autocomplete="off" />
+          </div>
+        </div>
+
+        <fieldset class="field colours" id="colours">
+          <legend class="label">Colour</legend>
+          <div class="swatches">
+            {colours.map((c, i) => (
+              <label class="sw">
+                <input type="radio" name="colour" value={c.key} checked={i === 0} />
+                <span class="chip" style={`background:${c.hex}`}></span>
+                <span>{c.name}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div class="group gift" id="gift-fields" hidden>
+          <div class="field">
+            <label for="f-gift-from">From</label>
+            <input id="f-gift-from" name="gift_from" type="text" maxlength="60" autocomplete="name" />
+          </div>
+          <div class="field">
+            <label for="f-gift-note">Note</label>
+            <textarea id="f-gift-note" name="gift_note" maxlength="300"></textarea>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <section class="blk blk-d" aria-labelledby="s3">
+      <h2 id="s3"><span class="n">3</span> Where should it go</h2>
+      <form class="fields ship" id="ship" novalidate onsubmit="return false">
+        <div class="field span2"><label for="s-name">Full name</label><input id="s-name" name="ship_name" autocomplete="name" required /></div>
+        <div class="field span2"><label for="s-email">Email</label><input id="s-email" name="ship_email" type="email" autocomplete="email" required /></div>
+        <div class="field span2"><label for="s-line1">Address line 1</label><input id="s-line1" name="ship_line1" autocomplete="address-line1" required /></div>
+        <div class="field span2"><label for="s-line2">Address line 2</label><input id="s-line2" name="ship_line2" autocomplete="address-line2" /></div>
+        <div class="field span2"><label for="s-city">City</label><input id="s-city" name="ship_city" autocomplete="address-level2" required /></div>
+        <div class="field"><label for="s-state">State</label><input id="s-state" name="ship_state" autocomplete="address-level1" maxlength="20" required /></div>
+        <div class="field"><label for="s-zip">ZIP</label><input id="s-zip" name="ship_zip" autocomplete="postal-code" inputmode="numeric" maxlength="10" required /></div>
+        <div class="field span2">
+          <label for="s-country">Country (US only for now)</label>
+          <select id="s-country" name="ship_country" autocomplete="country"><option value="US">United States</option></select>
+        </div>
+      </form>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .make { display: flex; flex-direction: column; gap: 2.25rem; padding-block: 1rem 2rem; }
+  .side { display: contents; }
+  .blk-a { order: 1; } .blk-b { order: 2; } .blk-c { order: 3; } .blk-d { order: 4; } .blk-e { order: 5; }
+  .blk h2 { font-size: clamp(1.75rem, 5vw, 2.5rem); margin-bottom: 1rem; display: flex; gap: 0.6rem; align-items: baseline; }
+  .blk h2 .n { color: var(--red); font-weight: 900; }
+
+  @media (min-width: 960px) {
+    .make { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 440px); gap: 2.5rem 3.5rem; align-items: start; }
+    .blk-a, .blk-c, .blk-d { grid-column: 1; }
+    .side { display: flex; flex-direction: column; gap: 1.5rem; grid-column: 2; grid-row: 1 / span 3; position: sticky; top: 1rem; }
+  }
+
+  .seg { display: grid; grid-template-columns: 1fr 1fr; border: 2px solid var(--ink); }
+  @media (min-width: 640px) { .seg { grid-template-columns: repeat(4, 1fr); } }
+  .seg-opt { position: relative; display: grid; gap: 0.25rem; padding: 0.75rem; min-height: 64px; cursor: pointer; background: var(--paper-hi); border: 1px solid var(--ink); }
+  .seg-opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .seg-name { font: 800 1.25rem/1 var(--display); }
+  .seg-price { font-size: 0.8125rem; }
+  .seg-opt:has(input:checked) { background: var(--ink); color: var(--paper); }
+  .seg-opt:has(input:focus-visible) { outline: 3px solid var(--red); outline-offset: -5px; }
+  .gift-sub { margin-top: 0.75rem; max-width: 60ch; }
+
+  .fields { display: grid; gap: 1rem; max-width: 640px; }
+  .group { display: grid; gap: 1rem; }
+  .group[hidden] { display: none; }
+  .tweet-found { margin: 0.25rem 0 0; padding: 0.75rem; border: 1px dashed var(--ink); background: var(--paper-hi); font-size: 0.875rem; white-space: pre-wrap; }
+  .colours { border: 0; padding: 0; margin: 0; }
+  .colours[hidden] { display: none; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.375rem; }
+  .sw { position: relative; display: inline-flex; align-items: center; gap: 0.5rem; min-height: 44px; padding: 0 0.75rem 0 0.5rem; border: 2px solid var(--rule); background: var(--paper-hi); cursor: pointer; font: 400 0.875rem/1 var(--mono); }
+  .sw input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .sw .chip { width: 22px; height: 22px; border: 1px solid var(--ink); }
+  .sw:has(input:checked) { border-color: var(--ink); font-weight: 700; }
+  .sw:has(input:focus-visible) { outline: 3px solid var(--red); outline-offset: 2px; }
+
+  .ship { grid-template-columns: 1fr 1fr; }
+  .ship .span2 { grid-column: 1 / -1; }
+
+  .stage-foot { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem; }
+  .blk-b .stage { aspect-ratio: 1 / 0.9; background: var(--paper-hi); border: 2px solid var(--ink); }
+
+  .pay { display: grid; gap: 0.5rem; margin-top: 1.5rem; }
+  .pay-btn { width: 100%; min-height: 56px; font-size: 1.0625rem; }
+  .whop:empty { display: none; }
+  .whop { margin-top: 0.5rem; min-height: 200px; }
+  .err:empty { display: none; }
+</style>
+
+<script>
+  import {
+    getClaim, getTweet, uploadImage, productByKey, dollars, isTweetUrl, type ProductKey,
+  } from '../lib/api';
+  import { buildMetadata, makeOrderRef, mountCheckout, sourceFromUrl, type MountedCheckout } from '../lib/checkout';
+  import { mountPreviewSafe, debounce, type PreviewHandle, type PreviewParams } from '../components/preview';
+
+  const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+  const val = (id: string) => ($<HTMLInputElement>(id)?.value ?? '').trim();
+  const setVal = (id: string, v: unknown) => { if (v !== undefined && v !== null && v !== '') $<HTMLInputElement>(id).value = String(v); };
+
+  const orderRef = makeOrderRef();
+  const startedAt = new Date();
+  const qs = new URLSearchParams(location.search);
+  const state = {
+    product: 'milestone' as ProductKey,
+    tweet: { text: '', handle: '', author_name: '', date: '' },
+    upload_id: '',
+    upload_name: '',
+    image_url: '',
+    claim_slug: '',
+    claim_price: 0,
+    gift: false,
+  };
+
+  // ---------- product switch ----------
+  function colour() { return (document.querySelector('input[name="colour"]:checked') as HTMLInputElement)?.value || 'black'; }
+  function price() { return state.claim_price || productByKey(state.product)?.price_cents || 0; }
+  function setProduct(p: ProductKey) {
+    state.product = p;
+    const radio = document.querySelector(`input[name="product"][value="${p}"]`) as HTMLInputElement | null;
+    if (radio) radio.checked = true;
+    document.querySelectorAll<HTMLElement>('.group[data-for]').forEach((g) => (g.hidden = g.dataset.for !== p));
+    $('colours').hidden = p === 'fullcolour';
+    document.querySelectorAll('[data-price]').forEach((n) => (n.textContent = dollars(price())));
+    changed();
+  }
+  document.querySelectorAll<HTMLInputElement>('input[name="product"]').forEach((r) =>
+    r.addEventListener('change', () => { state.claim_price = 0; setProduct(r.value as ProductKey); }));
+
+  // ---------- preview ----------
+  let preview: PreviewHandle | null = null;
+  function previewParams(): PreviewParams {
+    const c = colour();
+    switch (state.product) {
+      case 'tweet':
+        return { product: 'tweet', colour: c, author_name: state.tweet.author_name, handle: state.tweet.handle, text: state.tweet.text, likes: val('f-likes'), date: state.tweet.date };
+      case 'milestone':
+        return { product: 'milestone', colour: c, number: val('f-number'), label: val('f-label'), name: val('f-name'), date: val('f-date') };
+      case 'fullcolour':
+        return { product: 'fullcolour', colour: 'white', name: val('f-name-fc'), image_url: state.image_url || undefined };
+      case 'team':
+        return { product: 'team', colour: c, team: val('f-team'), subline: val('f-subline') };
+    }
+  }
+  const pushPreview = debounce(() => preview?.update(previewParams()), 250);
+  mountPreviewSafe($('stage'), previewParams()).then((h) => { preview = h; if (h) h.update(previewParams()); });
+
+  $('save-preview').addEventListener('click', async () => {
+    if (!preview) return;
+    try {
+      const blob = await preview.snapshot();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `receipts-${state.product}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    } catch (e) { console.warn('snapshot failed', e); }
+  });
+
+  // ---------- receipt strip ----------
+  const receipt = $('receipt');
+  const lineEls = new Map<string, HTMLElement>();
+  type Line = { k: string; l?: string; r?: string; cls?: string; sep?: boolean };
+  function trunc(s: string, n = 64) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+  function lines(): Line[] {
+    const p = productByKey(state.product)!;
+    const out: Line[] = [
+      { k: 'head', l: 'receipts', cls: 'r-head' },
+      { k: 'ref', l: 'REF', r: orderRef },
+      { k: 'when', l: 'DATE', r: startedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) },
+      { k: 's1', sep: true },
+      { k: 'item:' + p.key, l: p.name.toUpperCase(), r: dollars(price()) },
+    ];
+    if (state.product !== 'fullcolour') out.push({ k: 'colour', l: 'COLOUR', r: colour().toUpperCase() });
+    const add = (k: string, l: string, v: string) => { if (v) out.push({ k, l, r: v }); };
+    if (state.product === 'tweet') {
+      add('handle', 'FROM', state.tweet.handle ? '@' + state.tweet.handle : '');
+      add('text', 'TEXT', trunc(state.tweet.text));
+      add('likes', 'LIKES', val('f-likes'));
+      add('tdate', 'POSTED', state.tweet.date);
+    } else if (state.product === 'milestone') {
+      add('number', 'NUMBER', val('f-number'));
+      add('label', 'WHAT', val('f-label'));
+      add('name', 'NAME', val('f-name'));
+      add('mdate', 'DATE', val('f-date'));
+    } else if (state.product === 'fullcolour') {
+      add('file', 'FILE', trunc(state.upload_name, 28));
+      add('namefc', 'NAME', val('f-name-fc'));
+    } else {
+      add('team', 'TEAM', val('f-team'));
+      add('subline', 'LINE', val('f-subline'));
+      out.push({ k: 'qty', l: 'QTY', r: '10' });
+    }
+    if (state.gift) add('giftfrom', 'GIFT FROM', val('f-gift-from'));
+    const shipName = val('s-name');
+    const shipCity = [val('s-city'), val('s-state'), val('s-zip')].filter(Boolean).join(' ');
+    if (shipName || shipCity) {
+      out.push({ k: 's2', sep: true });
+      add('shipname', 'SHIP TO', shipName);
+      add('shipcity', '', shipCity);
+    }
+    out.push({ k: 's3', sep: true });
+    out.push({ k: 'total', l: 'TOTAL', r: dollars(price()), cls: 'r-total' });
+    return out;
+  }
+  function renderReceipt() {
+    const want = lines();
+    const keep = new Set(want.map((w) => w.k));
+    for (const [k, el] of lineEls) if (!keep.has(k)) { el.remove(); lineEls.delete(k); }
+    let prev: HTMLElement | null = null;
+    for (const w of want) {
+      let el = lineEls.get(w.k);
+      const isNew = !el;
+      if (!el) {
+        el = w.sep ? document.createElement('hr') : document.createElement('div');
+        el.className = w.sep ? 'r-sep' : `r-line ${w.cls ?? ''}`;
+        if (!w.sep) { el.append(document.createElement('span'), document.createElement('span')); }
+        lineEls.set(w.k, el);
+      }
+      if (!w.sep) {
+        (el.children[0] as HTMLElement).textContent = w.l ?? '';
+        (el.children[1] as HTMLElement).textContent = w.r ?? '';
+        if (w.cls === 'r-head') el.style.justifyContent = 'center';
+      }
+      const anchor: ChildNode | null = prev ? prev.nextSibling : receipt.firstChild;
+      if (el !== anchor) receipt.insertBefore(el, anchor);
+      if (isNew) { el.classList.add('print-in'); }
+      prev = el;
+    }
+  }
+
+  // ---------- change handling ----------
+  let checkout: MountedCheckout | null = null;
+  function resetCheckout() {
+    if (!checkout) return;
+    checkout.destroy();
+    checkout = null;
+    $('whop-checkout').replaceChildren();
+    $<HTMLButtonElement>('pay-btn').hidden = false;
+  }
+  function changed() {
+    renderReceipt();
+    pushPreview();
+    resetCheckout();
+  }
+  document.addEventListener('input', (e) => {
+    const t = e.target as HTMLElement;
+    if (t.closest('#fields, #ship')) changed();
+  });
+  document.addEventListener('change', (e) => {
+    const t = e.target as HTMLInputElement;
+    if (t.name === 'colour') changed();
+  });
+
+  // ---------- tweet lookup ----------
+  let lastTweet = '';
+  async function lookupTweet(url: string) {
+    url = url.trim();
+    if (!isTweetUrl(url) || url === lastTweet) return;
+    lastTweet = url;
+    const status = $('tweet-status');
+    status.textContent = '…';
+    try {
+      const t = await getTweet(url);
+      if (!t.ok) throw new Error('not ok');
+      state.tweet = { text: t.text ?? '', handle: (t.handle ?? '').replace(/^@/, ''), author_name: t.author_name ?? '', date: t.date ?? '' };
+      const found = $('tweet-found');
+      found.textContent = `${state.tweet.author_name} @${state.tweet.handle}\n${state.tweet.text}`;
+      found.hidden = false;
+      status.textContent = '';
+    } catch {
+      status.textContent = 'TODO(copy): tweet lookup failed';
+      lastTweet = '';
+    }
+    changed();
+  }
+  const tweetInput = $<HTMLInputElement>('f-tweet-url');
+  tweetInput.addEventListener('change', () => lookupTweet(tweetInput.value));
+  tweetInput.addEventListener('paste', () => setTimeout(() => lookupTweet(tweetInput.value), 0));
+  tweetInput.addEventListener('input', debounce(() => lookupTweet(tweetInput.value), 600));
+
+  // ---------- upload ----------
+  const upload = $<HTMLInputElement>('f-upload');
+  upload.addEventListener('change', async () => {
+    const file = upload.files?.[0];
+    const status = $('upload-status');
+    state.upload_id = '';
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) { status.textContent = '8 MB max'; return; }
+    if (state.image_url) URL.revokeObjectURL(state.image_url);
+    state.image_url = URL.createObjectURL(file);
+    state.upload_name = file.name;
+    status.textContent = '…';
+    changed();
+    try {
+      state.upload_id = await uploadImage(file);
+      status.textContent = `OK ${file.name}`;
+    } catch {
+      status.textContent = 'TODO(copy): upload failed';
+    }
+    changed();
+  });
+
+  // ---------- validation + pay ----------
+  function required(): HTMLElement[] {
+    const ids: string[] = { tweet: ['f-tweet-url'], milestone: ['f-number'], fullcolour: ['f-upload'], team: ['f-team'] }[state.product];
+    ids.push('s-name', 's-email', 's-line1', 's-city', 's-state', 's-zip');
+    const bad: HTMLElement[] = [];
+    for (const id of ids) {
+      const el = $<HTMLInputElement>(id);
+      let ok = id === 'f-upload' ? !!state.upload_id : !!el.value.trim();
+      if (id === 'f-tweet-url') ok = ok && isTweetUrl(el.value);
+      if (id === 's-email') ok = ok && /^\S+@\S+\.\S+$/.test(el.value.trim());
+      el.setAttribute('aria-invalid', ok ? 'false' : 'true');
+      if (!ok) bad.push(el);
+    }
+    return bad;
+  }
+  const payErr = $('pay-err');
+  $('pay-btn').addEventListener('click', async () => {
+    payErr.textContent = '';
+    const bad = required();
+    if (bad.length) {
+      payErr.textContent = 'Required: ' + bad.map((b) => document.querySelector(`label[for="${b.id}"]`)?.textContent).join(', ');
+      bad[0].focus();
+      return;
+    }
+    const isTweet = state.product === 'tweet';
+    const metadata = buildMetadata({
+      order_ref: orderRef,
+      product: state.product,
+      colour: state.product === 'fullcolour' ? '' : colour(),
+      tweet_url: isTweet ? val('f-tweet-url') : '',
+      tweet_text: isTweet ? state.tweet.text : '',
+      likes: isTweet ? val('f-likes') : '',
+      number: state.product === 'milestone' ? val('f-number') : '',
+      label: state.product === 'milestone' ? val('f-label') : isTweet && state.tweet.handle ? '@' + state.tweet.handle : '',
+      name: state.product === 'milestone' ? val('f-name') : state.product === 'fullcolour' ? val('f-name-fc') : isTweet ? state.tweet.author_name : '',
+      date: state.product === 'milestone' ? val('f-date') : isTweet ? state.tweet.date : '',
+      team: state.product === 'team' ? val('f-team') : '',
+      subline: state.product === 'team' ? val('f-subline') : '',
+      upload_id: state.product === 'fullcolour' ? state.upload_id : '',
+      ship_name: val('s-name'), ship_email: val('s-email'), ship_line1: val('s-line1'), ship_line2: val('s-line2'),
+      ship_city: val('s-city'), ship_state: val('s-state'), ship_zip: val('s-zip'), ship_country: 'US',
+      claim_slug: state.claim_slug,
+      gift_from: state.gift ? val('f-gift-from') : '',
+      gift_note: state.gift ? val('f-gift-note') : '',
+      source: sourceFromUrl(),
+    });
+    const btn = $<HTMLButtonElement>('pay-btn');
+    btn.disabled = true;
+    try {
+      checkout = await mountCheckout({
+        target: $('whop-checkout'),
+        product: state.product,
+        metadata,
+        email: val('s-email'),
+        shipping: { name: val('s-name'), line1: val('s-line1'), line2: val('s-line2'), city: val('s-city'), state: val('s-state'), postal_code: val('s-zip') },
+        onError: (m) => { payErr.textContent = m; },
+      });
+      btn.hidden = true;
+      $('whop-checkout').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    } catch (e) {
+      payErr.textContent = 'TODO(copy): checkout failed to load. ' + (e instanceof Error ? e.message : '');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ---------- initial state from URL ----------
+  function splitMilestone(q: string) {
+    const m = q.match(/^\s*(\S*\d\S*)\s*(.*)$/);
+    return m ? { number: m[1].slice(0, 10), label: m[2] } : { number: q.slice(0, 10), label: '' };
+  }
+  async function init() {
+    const p = qs.get('product');
+    if (p && productByKey(p)) state.product = p as ProductKey;
+    if (qs.get('number')) { const s = splitMilestone(qs.get('number')!); setVal('f-number', s.number); setVal('f-label', s.label); }
+    if (qs.get('url')) setVal('f-tweet-url', qs.get('url'));
+    state.gift = qs.get('gift') === '1';
+    $('gift-fields').hidden = !state.gift;
+    $('gift-sub').hidden = !state.gift;
+    setProduct(state.product);
+    if (qs.get('url')) lookupTweet(qs.get('url')!);
+
+    const slug = qs.get('claim');
+    if (slug) {
+      try {
+        const c = await getClaim(slug);
+        state.claim_slug = c.slug || slug;
+        state.claim_price = c.price_cents || 0;
+        const col = document.querySelector(`input[name="colour"][value="${c.colour}"]`) as HTMLInputElement | null;
+        if (col) col.checked = true;
+        if (c.product === 'tweet') {
+          setVal('f-tweet-url', c.tweet_url);
+          setVal('f-likes', c.likes);
+          state.tweet = { text: c.text ?? '', handle: (c.handle ?? '').replace(/^@/, ''), author_name: c.name ?? '', date: c.date ?? '' };
+          if (c.tweet_url) lastTweet = c.tweet_url;
+          if (state.tweet.text) {
+            const found = $('tweet-found');
+            found.textContent = `${state.tweet.author_name} @${state.tweet.handle}\n${state.tweet.text}`;
+            found.hidden = false;
+          }
+        } else {
+          setVal('f-number', c.number); setVal('f-label', c.label); setVal('f-name', c.name || (c.handle ? '@' + c.handle.replace(/^@/, '') : '')); setVal('f-date', c.date);
+        }
+        setProduct(c.product);
+        state.claim_price = c.price_cents || 0;
+        document.querySelectorAll('[data-price]').forEach((n) => (n.textContent = dollars(price())));
+        renderReceipt();
+      } catch (e) {
+        console.warn('claim load failed', e);
+      }
+    }
+  }
+  init();
+</script>

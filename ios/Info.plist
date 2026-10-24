@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>Micro Factory</string>
+	<key>NSCameraUsageDescription</key>
+	<string>To photograph the thing you want made.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>So you can describe your order out loud.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>To pick photos of the thing you want made.</string>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+</dict>
+</plist>

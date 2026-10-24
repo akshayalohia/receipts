@@ -1,0 +1,44 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="receipts · Order" noindex>
+  <section class="wrap order">
+    <div class="receipt-wrap">
+      <div class="receipt" id="order" data-status="pending">
+        <div class="r-line r-head" style="justify-content:center"><span>receipts</span></div>
+        <div class="r-line"><span>REF</span><span id="ref">--------</span></div>
+        <hr class="r-sep" />
+        <p class="msg" data-when="succeeded">Done. Your receipt is in the queue. We'll email you when it ships.</p>
+        <p class="msg" data-when="pending">Your payment is processing. We'll confirm by email.</p>
+        <p class="msg" data-when="failed">You weren't charged. <a href="/make">→ Try again</a></p>
+        <hr class="r-sep" />
+        <div class="r-line"><span>STATUS</span><span id="status-word">PENDING</span></div>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .order { max-width: 460px; padding-block: 3rem 2rem; }
+  .msg { display: none; font-size: 1rem; line-height: 1.5; padding: 0.5rem 0; }
+  .msg a { font-weight: 700; display: inline-flex; min-height: 44px; align-items: center; }
+  [data-status='succeeded'] [data-when='succeeded'],
+  [data-status='pending'] [data-when='pending'],
+  [data-status='failed'] [data-when='failed'] { display: block; }
+  [data-status='succeeded'] #status-word { color: var(--ink); }
+  [data-status='failed'] #status-word { color: var(--red); }
+</style>
+
+<script>
+  // Display only: fulfilment comes from the Whop payment, never from this page's query string.
+  const q = new URLSearchParams(location.search);
+  const raw = (q.get('status') || '').toLowerCase();
+  const status = raw === 'succeeded' || raw === 'success' ? 'succeeded'
+    : raw === 'failed' || raw === 'canceled' || raw === 'cancelled' || raw === 'error' ? 'failed'
+    : 'pending';
+  const el = document.getElementById('order')!;
+  el.dataset.status = status;
+  document.getElementById('status-word')!.textContent = status.toUpperCase();
+  const ref = q.get('ref');
+  if (ref) document.getElementById('ref')!.textContent = ref.slice(0, 16);
+</script>

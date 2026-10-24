@@ -1,0 +1,55 @@
+---
+// fontsource exports map "./*" to "./*.css", so no extension here.
+import '@fontsource/big-shoulders-display/latin-800';
+import '@fontsource/big-shoulders-display/latin-900';
+import '@fontsource/archivo/latin-400';
+import '@fontsource/archivo/latin-600';
+import '@fontsource/jetbrains-mono/latin-400';
+import '@fontsource/jetbrains-mono/latin-700';
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  noindex?: boolean;
+}
+const tagline = 'We 3D print your receipts.';
+const {
+  title = `receipts · ${tagline}`,
+  description = "Your viral tweet. Your first $10k month. Your 10,000th subscriber. Paste it in, turn it around in 3D, and we'll ship it to your desk.",
+  ogImage = '/og.png',
+  noindex = false,
+} = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#f2eee4" />
+    {noindex && <meta name="robots" content="noindex" />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="receipts" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <slot name="head" />
+  </head>
+  <body>
+    <Header />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

@@ -1,0 +1,85 @@
+---
+import Base from '../../layouts/Base.astro';
+// One static route for every /c/<slug> (public/_redirects: /c/* /c/index.html 200).
+// og:image here is the static fallback; crawlers don't run JS, so the per-slug image
+// /api/claim/<slug>/og.png needs an HTML rewrite in a Function. TODO(og): SITE-FN.
+---
+<Base title="receipts · this one's yours" noindex>
+  <section class="wrap claim" id="claim" data-state="loading">
+    <div class="claim-copy">
+      <h1 id="claim-h">@<span data-f="handle"></span>, this one's yours.</h1>
+      <p class="claim-sub">Your post blew up. We already made the trophy. It's <span data-f="price"></span> and ships this week.</p>
+      <div class="claim-actions">
+        <a class="btn btn-primary" id="claim-it" href="/make">Claim it</a>
+        <a class="btn" id="gift-it" href="/make">Gift it to them</a>
+      </div>
+      <p class="gift-sub">Know them? Send it to them as a gift. We'll ship it with a card that says who it's from.</p>
+      <p class="mono small muted">Made by the AI agents at receipts. Not affiliated with X.</p>
+    </div>
+    <div class="claim-object">
+      <div class="stage" id="stage"><div class="stage-empty">TODO(preview): 3D object</div></div>
+      <p class="mono small muted">Drag to turn it. This is what we'll print.</p>
+    </div>
+    <div class="claim-missing">
+      <!-- TODO(copy): claim not found message -->
+      <p class="mono">404</p>
+      <a class="btn btn-primary" href="/make">Make mine</a>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .claim { display: grid; gap: 2rem; padding-block: 1.5rem 3rem; align-items: center; }
+  .claim h1 { font-size: clamp(2.75rem, 9vw, 6rem); font-weight: 900; line-height: 0.92; overflow-wrap: anywhere; }
+  .claim-sub { margin-top: 1.25rem; font-size: 1.125rem; max-width: 44ch; }
+  .claim-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1.75rem 0 1rem; }
+  .gift-sub { max-width: 52ch; color: var(--ink-2); margin-bottom: 1.25rem; }
+  .claim-object .stage { aspect-ratio: 1 / 0.9; }
+  .claim-missing { display: none; }
+  .claim[data-state='loading'] .claim-copy, .claim[data-state='loading'] .claim-object { opacity: 0.35; }
+  .claim[data-state='missing'] > :not(.claim-missing) { display: none; }
+  .claim[data-state='missing'] .claim-missing { display: grid; gap: 1rem; justify-items: start; }
+  @media (min-width: 960px) { .claim { grid-template-columns: 1.05fr 1fr; gap: 3rem; min-height: calc(100dvh - 64px - 6rem); } }
+</style>
+
+<script>
+  import { getClaim, dollars, productByKey } from '../../lib/api';
+  import { mountPreviewSafe } from '../../components/preview';
+
+  const root = document.getElementById('claim')!;
+  const slug = decodeURIComponent(location.pathname.replace(/^\/c\/?/, '').replace(/\/.*$/, ''));
+  const fill = (k: string, v: string) => root.querySelectorAll(`[data-f="${k}"]`).forEach((n) => (n.textContent = v));
+
+  async function run() {
+    if (!slug || slug === 'index.html') { root.dataset.state = 'missing'; return; }
+    try {
+      const c = await getClaim(slug);
+      const handle = (c.handle || '').replace(/^@/, '');
+      const price = c.price_cents || productByKey(c.product)?.price_cents || 0;
+      fill('handle', handle);
+      fill('price', dollars(price));
+      document.title = `receipts · @${handle}, this one's yours.`;
+      const base = `/make?product=${c.product}&claim=${encodeURIComponent(slug)}`;
+      const utm = new URLSearchParams(location.search);
+      const extra = [...utm].filter(([k]) => k.startsWith('utm_')).map(([k, v]) => `&${k}=${encodeURIComponent(v)}`).join('');
+      (document.getElementById('claim-it') as HTMLAnchorElement).href = base + extra;
+      (document.getElementById('gift-it') as HTMLAnchorElement).href = base + '&gift=1' + extra;
+      root.dataset.state = 'ready';
+      mountPreviewSafe(document.getElementById('stage')!, {
+        product: c.product,
+        colour: c.colour || 'black',
+        handle,
+        author_name: c.name,
+        text: c.text,
+        likes: c.likes !== undefined ? String(c.likes) : undefined,
+        date: c.date,
+        number: c.number,
+        label: c.label,
+        name: c.name || (c.product === 'milestone' ? '@' + handle : undefined),
+      });
+    } catch {
+      root.dataset.state = 'missing';
+    }
+  }
+  run();
+</script>

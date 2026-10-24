@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_BASE_URL</key>
+	<string>https://factory.example.com</string>
+	<key>APP_KEY</key>
+	<string>replace-with-APP_SHARED_SECRET</string>
+	<key>WHOP_COMPANY_ID</key>
+	<string>biz_REPLACE_ME</string>
+	<key>WHOP_IAP_KEY</key>
+	<string>REPLACE_WITH_IAP_READ_KEY</string>
+</dict>
+</plist>

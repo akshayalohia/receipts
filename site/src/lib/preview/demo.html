@@ -1,0 +1,92 @@
+<!doctype html>
+<!--
+  Review page for the 3D preview. All content below is SAMPLE data.
+  Run from site/:  npx vite   then open  http://localhost:5173/src/lib/preview/demo.html
+  (Vite serves public/ at /, so the font loads from /fonts3d/.)
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>3D preview demo (sample)</title>
+    <style>
+      :root { color-scheme: light dark; --bg: #f2eee6; --ink: #1d1d1f; --muted: #5c5a55; --line: #ddd7cc; }
+      @media (prefers-color-scheme: dark) { :root { --bg: #18181a; --ink: #f2f1ed; --muted: #a9a59d; --line: #2c2c30; } }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, sans-serif; }
+      main { max-width: 1200px; margin: 0 auto; padding: 32px 16px 64px; }
+      h1 { font-size: 22px; margin: 0 0 4px; }
+      p.note { color: var(--muted); margin: 0 0 24px; max-width: 65ch; }
+      .grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
+      @media (min-width: 768px) { .grid { grid-template-columns: 1fr 1fr; } }
+      figure { margin: 0; border-top: 1px solid var(--line); padding-top: 12px; }
+      .stage { width: 100%; aspect-ratio: 4 / 3; }
+      figcaption { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; }
+      .tag { color: var(--muted); }
+      button { font: inherit; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); cursor: pointer; }
+      button:active { transform: translateY(1px); }
+      select { font: inherit; }
+      img.snap { display: block; width: 100%; margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>3D preview (sample)</h1>
+      <p class="note">Every name, handle, number and image here is sample content for review. Drag to rotate.</p>
+      <div class="grid" id="grid"></div>
+    </main>
+    <script type="module">
+      import { mountPreview } from './index.ts';
+
+      // Sample "screenshot" drawn locally so the demo has no third-party images.
+      function sampleScreenshot() {
+        const c = document.createElement('canvas');
+        c.width = 900; c.height = 600;
+        const g = c.getContext('2d');
+        g.fillStyle = '#ffffff'; g.fillRect(0, 0, 900, 600);
+        g.fillStyle = '#2554c7'; g.fillRect(0, 0, 900, 90);
+        g.fillStyle = '#ffffff'; g.font = 'bold 40px system-ui'; g.fillText('SAMPLE screenshot', 32, 60);
+        g.fillStyle = '#1d1d1f'; g.font = '32px system-ui';
+        ['Order #1042 shipped', 'Revenue today: sample', 'This is placeholder content'].forEach((t, i) => g.fillText(t, 32, 170 + i * 64));
+        return c.toDataURL('image/png');
+      }
+
+      const samples = [
+        { title: 'Tweet Trophy', params: { product: 'tweet', colour: 'black', author_name: 'Sample Author', handle: 'sample_handle',
+          text: 'This is sample tweet text for the preview. It wraps across lines and shrinks between 4 and 7 mm cap height so longer posts still fit on the card.',
+          likes: '1,204', date: 'Oct 24, 2026', founding: '7' } },
+        { title: 'Milestone Plaque', params: { product: 'milestone', colour: 'gold', number: '10,000', label: 'followers', name: 'Sample Name', handle: 'sample', date: 'Oct 2026' } },
+        { title: 'Full-Colour Receipt', params: { product: 'fullcolour', colour: 'white', name: 'Sample Name', image_url: sampleScreenshot() } },
+        { title: 'Team Pack', params: { product: 'team', colour: 'blue', team: 'Sample Team', subline: 'First 100 customers', name: 'Sample Co', date: '2026' } },
+      ];
+
+      const grid = document.getElementById('grid');
+      for (const s of samples) {
+        const fig = document.createElement('figure');
+        const stage = document.createElement('div');
+        stage.className = 'stage';
+        const cap = document.createElement('figcaption');
+        cap.innerHTML = `<span>${s.title} <span class="tag">sample</span></span>`;
+        const controls = document.createElement('span');
+        const sel = document.createElement('select');
+        sel.setAttribute('aria-label', 'Colour');
+        for (const c of ['black', 'white', 'red', 'blue', 'green', 'gold']) sel.add(new Option(c, c, false, c === s.params.colour));
+        const btn = document.createElement('button');
+        btn.textContent = 'Snapshot';
+        controls.append(sel, ' ', btn);
+        cap.append(controls);
+        fig.append(stage, cap);
+        grid.append(fig);
+
+        const preview = mountPreview(stage, s.params);
+        sel.addEventListener('change', () => { s.params = { ...s.params, colour: sel.value }; preview.update(s.params); });
+        btn.addEventListener('click', async () => {
+          const blob = await preview.snapshot();
+          let img = fig.querySelector('img.snap');
+          if (!img) { img = document.createElement('img'); img.className = 'snap'; img.alt = `${s.title} snapshot (sample)`; fig.append(img); }
+          img.src = URL.createObjectURL(blob);
+        });
+      }
+    </script>
+  </body>
+</html>

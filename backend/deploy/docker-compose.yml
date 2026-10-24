@@ -1,0 +1,122 @@
+# Receipts backend, fully isolated (OrbStack / Docker Desktop on Apple Silicon). See SETUP-MAC.md.
+#   cd backend/deploy && cp .env.example .env    # fill in keys
+#   docker compose up -d --build
+# Services: receipts-worker (order pipeline), mcp (MCP server + human post queue on
+# 127.0.0.1:8787), hermes (the 8 bot profiles + cron gateway). No inbound tunnel: the site is on
+# Cloudflare and the worker polls Whop.
+#
+# Isolation: non-root users, read-only root filesystems (tmpfs /tmp), named volumes only (no bind
+# mounts of the Mac, no docker socket), all capabilities dropped, no-new-privileges, the only
+# published port bound to 127.0.0.1. hermes talks to mcp over the `internal` network; `egress`
+# gives outbound internet (Whop, Slant, Craftcloud, X, Exa, the site, Claude/Codex).
+# Secrets are passed per service: hermes only gets MCP_TOKEN and model settings.
+name: receipts
+
+x-hardening: &hardening
+  restart: unless-stopped
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp:size=256m,mode=1777
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+
+x-receipts-env: &receipts-env
+  RECEIPTS_DATA: /data
+  RECEIPTS_MOCK: ${RECEIPTS_MOCK:-}
+  WHOP_API_KEY: ${WHOP_API_KEY:-}
+  WHOP_COMPANY_ID: ${WHOP_COMPANY_ID:-}
+  SLANT_API_KEY: ${SLANT_API_KEY:-}
+  SLANT_PLATFORM_ID: ${SLANT_PLATFORM_ID:-}
+  CRAFTCLOUD_API_KEY: ${CRAFTCLOUD_API_KEY:-}
+  SITE_URL: ${SITE_URL:-}
+  SITE_ADMIN_TOKEN: ${SITE_ADMIN_TOKEN:-}
+  HOME: /tmp
+  MPLCONFIGDIR: /tmp/mpl
+
+services:
+  receipts-worker:
+    <<: *hardening
+    image: receipts-backend:local
+    pull_policy: never              # built by the mcp service below
+    depends_on: [mcp]
+    user: "10001:10001"
+    command: ["python", "-m", "receipts.worker"]
+    environment:
+      <<: *receipts-env
+    volumes:
+      - receipts-data:/data
+    networks: [egress]
+
+  mcp:
+    <<: *hardening
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.receipts
+    image: receipts-backend:local
+    user: "10001:10001"
+    command: ["python", "-m", "mcp_server"]
+    environment:
+      <<: *receipts-env
+      MCP_TOKEN: ${MCP_TOKEN:?set MCP_TOKEN in .env}
+      MCP_PORT: "8787"
+      X_BEARER_TOKEN: ${X_BEARER_TOKEN:-}
+      X_USER_TOKEN: ${X_USER_TOKEN:-}
+      X_AUTOREPLY_MENTIONS: ${X_AUTOREPLY_MENTIONS:-0}
+      X_BRAND_HANDLE: ${X_BRAND_HANDLE:-receipts}
+      EXA_API_KEY: ${EXA_API_KEY:-}
+      SOLARI_API_KEY: ${SOLARI_API_KEY:-}
+      SOLARI_CDP_URL: ${SOLARI_CDP_URL:-}
+      ADS_DAILY_CAP_USD: ${ADS_DAILY_CAP_USD:-50}
+    volumes:
+      - receipts-data:/data
+    ports:
+      - "127.0.0.1:8787:8787"     # queue page: http://127.0.0.1:8787/queue
+    networks: [internal, egress]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  hermes:
+    <<: *hardening
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.hermes    # FROM nousresearch/hermes-agent:latest (amd64 + arm64)
+    image: receipts-hermes:local
+    user: "10000:10000"               # the image's own `hermes` user
+    depends_on: [mcp]
+    # Bypass the image's s6-overlay /init (it needs root for usermod/chown); run the fleet
+    # bootstrap directly as uid 10000. It ends with the gateway in the foreground (cron ticker on).
+    entrypoint: ["sh", "/opt/fleet/bootstrap.sh"]
+    command: []
+    environment:
+      HERMES_HOME: /opt/data          # auth.json (hermes auth add ...) + profiles live in hermes-home
+      HOME: /opt/data/home            # ~/.claude and ~/.codex CLI logins persist in hermes-home
+      MCP_TOKEN: ${MCP_TOKEN:?set MCP_TOKEN in .env}
+      RECEIPTS_MCP_URL: http://mcp:8787/mcp
+      CLAUDE_PROVIDER: ${CLAUDE_PROVIDER:-anthropic}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-4-6}
+      CODEX_PROVIDER: ${CODEX_PROVIDER:-openai-codex}
+      CODEX_MODEL: ${CODEX_MODEL:-gpt-5.5}
+      CEO_MODEL: ${CEO_MODEL:-}
+      SCOUT_MODEL: ${SCOUT_MODEL:-}
+      DESIGNER_MODEL: ${DESIGNER_MODEL:-}
+      CLOSER_MODEL: ${CLOSER_MODEL:-}
+      ADS_MODEL: ${ADS_MODEL:-}
+      PRODUCTION_MODEL: ${PRODUCTION_MODEL:-}
+      HIRING_MODEL: ${HIRING_MODEL:-}
+      FINANCE_MODEL: ${FINANCE_MODEL:-}
+    volumes:
+      - hermes-home:/opt/data
+    networks: [internal, egress]
+
+networks:
+  internal:
+    internal: true
+  egress: {}
+
+volumes:
+  receipts-data:
+  hermes-home:

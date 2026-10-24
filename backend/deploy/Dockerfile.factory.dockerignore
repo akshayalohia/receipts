@@ -1,0 +1,8 @@
+# Build context is backend/; keep the venv, data and caches out of the image.
+.venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+deploy/data
+deploy/.env
+data

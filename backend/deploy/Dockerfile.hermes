@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1
+# Hermes fleet image: the official Hermes image + the `claude` and `codex` CLIs + the Receipts
+# profiles. Build context: backend/ (for fleet/).
+#
+# Hermes is not pip-installable (its build backend refuses wheels/sdists); it ships as this
+# multi-arch (linux/amd64 + linux/arm64) image. Facts this file relies on, from the Hermes repo:
+#   - hermes binary: /opt/hermes/.venv/bin/hermes (/opt/hermes/bin/hermes is a root->hermes shim)
+#   - runtime user: hermes, uid 10000, home /opt/data; HERMES_HOME=/opt/data (a VOLUME)
+#   - node/npm: pm-pinned, symlinked into /usr/local/bin
+#   - the image ENTRYPOINT is the s6-overlay dispatcher, which needs root (usermod/chown in its
+#     stage2 hook). docker-compose.yml replaces it and runs fleet/bootstrap.sh as uid 10000.
+FROM nousresearch/hermes-agent:latest
+
+USER root
+
+# python3-yaml for fleet/profiles.py (run with the Debian /usr/bin/python3, not the sealed Hermes venv).
+RUN apt-get -o Acquire::Retries=3 update \
+    && apt-get -o Acquire::Retries=3 install -y --no-install-recommends python3-yaml \
+    && rm -rf /var/lib/apt/lists/* \
+    && /usr/bin/python3 -c "import yaml"
+
+# Model CLIs, installed with the image's own node/npm into /usr/local (bin on PATH).
+# npm's allowScripts policy blocks install scripts by default; claude-code's postinstall fetches its
+# native binary, so allow that one package only (codex has no install scripts).
+RUN npm install -g --prefix /usr/local --allow-scripts=@anthropic-ai/claude-code \
+        @anthropic-ai/claude-code @openai/codex \
+    && npm cache clean --force \
+    && claude --version && codex --version
+
+COPY fleet /opt/fleet
+RUN chmod -R a+rX,go-w /opt/fleet \
+    && test -x /opt/hermes/.venv/bin/hermes \
+    && mkdir -p /opt/data/home && chown 10000:10000 /opt/data /opt/data/home
+
+ENV HERMES_HOME=/opt/data \
+    HOME=/opt/data/home \
+    FLEET_DIR=/opt/fleet \
+    FLEET_PYTHON=/usr/bin/python3 \
+    HERMES_BIN=/opt/hermes/.venv/bin/hermes
+
+USER 10000:10000
+ENTRYPOINT []
+CMD ["sh", "/opt/fleet/bootstrap.sh"]

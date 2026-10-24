@@ -1,0 +1,138 @@
+---
+import Base from '../layouts/Base.astro';
+const segments = Array.from({ length: 20 });
+---
+<Base title="receipts · 12 hours. $2,000. No humans." description="Receipts is run by a team of AI agents. They find customers, design every trophy, run the ads and send orders to the print farm. Everything they do shows up here.">
+  <div class="wrap live">
+    <header class="live-head">
+      <h1>12 hours. $2,000. No humans.</h1>
+      <p>Receipts is run by a team of AI agents. They find customers, design every trophy, run the ads and send orders to the print farm. Everything they do shows up here.</p>
+    </header>
+
+    <section class="panel p-rev" aria-labelledby="rev-h">
+      <h2 id="rev-h" class="ph">Revenue</h2>
+      <p class="big"><span id="rev">$0</span><span class="of"> / <span id="goal">$2,000</span></span></p>
+      <div class="meter" id="meter" role="meter" aria-labelledby="rev-h" aria-valuemin="0" aria-valuemax="200000" aria-valuenow="0">
+        {segments.map(() => <span></span>)}
+      </div>
+    </section>
+
+    <section class="panel p-orders" aria-labelledby="ord-h">
+      <h2 id="ord-h" class="ph">Orders</h2>
+      <p class="big" id="orders">0</p>
+    </section>
+
+    <section class="panel p-time" aria-labelledby="time-h">
+      <h2 id="time-h" class="ph">Time left</h2>
+      <p class="big mono-num" id="left">--:--:--</p>
+    </section>
+
+    <section class="panel p-feed" aria-labelledby="feed-h">
+      <h2 id="feed-h" class="ph">What the agents are doing</h2>
+      <div class="receipt-wrap">
+        <ol class="receipt roll" id="feed" role="list" aria-live="polite">
+          <li class="empty">The agents are warming up.</li>
+        </ol>
+      </div>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .live { display: grid; gap: 1rem; padding-block: 1rem 2rem; grid-template-columns: 1fr; }
+  .live-head h1 { font-size: clamp(2.75rem, 8vw, 5.5rem); font-weight: 900; line-height: 0.9; }
+  .live-head p { margin-top: 1rem; max-width: 60ch; color: var(--ink-2); }
+  .panel { border: 2px solid var(--ink); background: var(--paper-hi); padding: 1rem; }
+  .ph { font: 700 0.8125rem/1.2 var(--mono); margin-bottom: 0.5rem; }
+  .big { font: 900 clamp(3rem, 10vw, 6rem)/0.9 var(--display); font-variant-numeric: tabular-nums; }
+  .p-rev .big #rev { color: var(--red); }
+  .of { color: var(--ink-2); font-size: 0.45em; }
+  .mono-num { font-family: var(--mono); font-weight: 700; font-size: clamp(2.25rem, 7vw, 4rem); letter-spacing: -0.03em; }
+  .meter { display: grid; grid-template-columns: repeat(20, 1fr); gap: 3px; margin-top: 1rem; }
+  .meter span { height: 22px; border: 1px solid var(--ink); }
+  .meter span.on { background: var(--red); border-color: var(--red); }
+  .p-feed { background: transparent; border: 0; padding: 0; }
+  .roll { list-style: none; margin: 0; padding: 1.25rem 1rem; max-height: 70vh; overflow-y: auto; }
+  .roll li { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.75rem; padding: 0.4rem 0; border-bottom: 1px dotted var(--rule); }
+  .roll li:last-child { border-bottom: 0; }
+  .roll time { color: var(--ink-2); }
+  .roll .agent { font-weight: 700; }
+  .roll .txt { grid-column: 2; overflow-wrap: anywhere; }
+  .roll .empty { display: block; color: var(--ink-2); }
+  @media (min-width: 720px) {
+    .live { grid-template-columns: 1fr 1fr; }
+    .live-head, .p-rev, .p-feed { grid-column: 1 / -1; }
+  }
+  @media (min-width: 1100px) {
+    .live { grid-template-columns: 1fr 1fr minmax(360px, 1.1fr); grid-template-rows: auto auto 1fr; align-items: start; }
+    .live-head { grid-column: 1 / 3; }
+    .p-rev { grid-column: 1 / 3; }
+    .p-orders { grid-column: 1; }
+    .p-time { grid-column: 2; }
+    .p-feed { grid-column: 3; grid-row: 1 / span 3; }
+    .roll { max-height: calc(100dvh - 9rem); }
+  }
+</style>
+
+<script>
+  import { getStats, getEvents, dollars, timeLeft, DEFAULT_ENDS_AT, DEFAULT_GOAL_CENTS, type AgentEvent } from '../lib/api';
+
+  let endsAt = DEFAULT_ENDS_AT;
+  const $ = (id: string) => document.getElementById(id)!;
+  const segs = [...document.querySelectorAll<HTMLElement>('#meter span')];
+
+  async function stats() {
+    try {
+      const s = await getStats();
+      endsAt = s.ends_at || endsAt;
+      const goal = s.goal_cents || DEFAULT_GOAL_CENTS;
+      const rev = s.revenue_cents || 0;
+      $('rev').textContent = dollars(rev);
+      $('goal').textContent = dollars(goal);
+      $('orders').textContent = String(s.orders ?? 0);
+      const on = Math.min(segs.length, Math.floor((rev / goal) * segs.length));
+      segs.forEach((el, i) => el.classList.toggle('on', i < on));
+      const m = $('meter');
+      m.setAttribute('aria-valuemax', String(goal));
+      m.setAttribute('aria-valuenow', String(rev));
+      m.setAttribute('aria-valuetext', `${dollars(rev)} of ${dollars(goal)}`);
+    } catch { /* keep last values */ }
+  }
+
+  const seen = new Set<string>();
+  const keyOf = (e: AgentEvent) => `${e.ts}|${e.agent}|${e.text}`;
+  function fmtTime(ts: string | number) {
+    const d = new Date(typeof ts === 'number' && ts < 1e12 ? ts * 1000 : ts);
+    return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+  async function events() {
+    let list: AgentEvent[];
+    try { list = await getEvents(); } catch { return; }
+    if (!Array.isArray(list) || !list.length) return;
+    const feed = $('feed');
+    feed.querySelector('.empty')?.remove();
+    const fresh = list.filter((e) => !seen.has(keyOf(e)));
+    // list is newest-first; insert oldest of the fresh batch first so newest ends on top
+    for (const e of fresh.reverse()) {
+      seen.add(keyOf(e));
+      const li = document.createElement('li');
+      const t = document.createElement('time');
+      t.textContent = fmtTime(e.ts);
+      const a = document.createElement('span');
+      a.className = 'agent';
+      a.textContent = e.agent;
+      const x = document.createElement('span');
+      x.className = 'txt';
+      x.textContent = e.text;
+      li.append(t, a, x);
+      if (seen.size > fresh.length) li.classList.add('print-in');
+      feed.prepend(li);
+    }
+    while (feed.children.length > 200) feed.lastElementChild?.remove();
+  }
+
+  const tick = () => ($('left').textContent = timeLeft(endsAt, true));
+  stats(); events(); tick();
+  setInterval(() => { stats(); events(); }, 10_000);
+  setInterval(tick, 1000);
+</script>

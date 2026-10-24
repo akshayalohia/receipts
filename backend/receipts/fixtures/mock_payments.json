@@ -1,0 +1,49 @@
+[
+  {
+    "id": "pay_mock_tweet_0001", "status": "paid", "substatus": "succeeded", "currency": "usd", "total": 29.0,
+    "created_at": "2026-10-24T14:01:00Z", "plan": {"id": "plan_mock_tweet"}, "user": {"email": "sample.buyer1@example.com"},
+    "metadata": {
+      "order_ref": "SAMPLE01", "product": "tweet", "colour": "black", "source": "direct",
+      "tweet_url": "https://x.com/sample_handle/status/1850000000000000001",
+      "tweet_text": "Sample tweet: shipped the thing, and the thing shipped back. This is synthetic fixture text.",
+      "likes": "1204", "name": "Sample Author", "date": "2026-10-24", "claim_slug": "sample-handle",
+      "ship_name": "Sample Buyer One", "ship_email": "sample.buyer1@example.com", "ship_line1": "100 Example St",
+      "ship_city": "Springfield", "ship_state": "IL", "ship_zip": "62701", "ship_country": "US"
+    }
+  },
+  {
+    "id": "pay_mock_milestone_0002", "status": "paid", "substatus": "succeeded", "currency": "usd", "total": 49.0,
+    "created_at": "2026-10-24T14:05:00Z", "plan": {"id": "plan_mock_milestone"}, "user": {"email": "sample.buyer2@example.com"},
+    "metadata": {
+      "order_ref": "SAMPLE02", "product": "milestone", "colour": "gold", "source": "x",
+      "number": "$10K MRR", "label": "monthly recurring revenue", "name": "@sample_maker", "date": "Oct 2026",
+      "ship_name": "Sample Buyer Two", "ship_email": "sample.buyer2@example.com", "ship_line1": "200 Example Ave",
+      "ship_line2": "Unit 4", "ship_city": "Portland", "ship_state": "OR", "ship_zip": "97201", "ship_country": "US"
+    }
+  },
+  {
+    "id": "pay_mock_fullcolour_0003", "status": "paid", "substatus": "succeeded", "currency": "usd", "total": 89.0,
+    "created_at": "2026-10-24T14:09:00Z", "plan": {"id": "plan_mock_fullcolour"}, "user": {"email": "sample.buyer3@example.com"},
+    "metadata": {
+      "order_ref": "SAMPLE03", "product": "fullcolour", "colour": "white", "source": "direct",
+      "upload_id": "mockupload0003", "name": "Sample Studio",
+      "ship_name": "Sample Buyer Three", "ship_email": "sample.buyer3@example.com", "ship_line1": "300 Example Blvd",
+      "ship_city": "Austin", "ship_state": "TX", "ship_zip": "73301", "ship_country": "US"
+    }
+  },
+  {
+    "id": "pay_mock_team_0004", "status": "paid", "substatus": "succeeded", "currency": "usd", "total": 249.0,
+    "created_at": "2026-10-24T14:12:00Z", "plan": {"id": "plan_mock_team"}, "user": {"email": "sample.buyer4@example.com"},
+    "metadata": {
+      "order_ref": "SAMPLE04", "product": "team", "colour": "blue", "source": "direct",
+      "team": "Sample Team", "subline": "1,000 customers", "date": "2026",
+      "ship_name": "Sample Buyer Four", "ship_email": "sample.buyer4@example.com", "ship_line1": "400 Example Rd",
+      "ship_city": "Denver", "ship_state": "CO", "ship_zip": "80202", "ship_country": "US"
+    }
+  },
+  {
+    "id": "pay_mock_open_0005", "status": "open", "substatus": "pending", "currency": "usd", "total": 29.0,
+    "created_at": "2026-10-24T14:15:00Z", "plan": {"id": "plan_mock_tweet"},
+    "metadata": {"order_ref": "SAMPLE05", "product": "tweet", "colour": "red"}
+  }
+]

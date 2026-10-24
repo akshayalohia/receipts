@@ -1,0 +1,5 @@
+version: 1
+# Change this to something unique to you before the first install (free Apple IDs need a unique ID).
+bundleID: dev.microfactory.app
+# Extra Info.plist keys (usage strings, portrait only), merged into the plist xtool generates.
+infoPath: Info.plist

@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1
+# Receipts backend image: `receipts-worker` (python -m receipts.worker) and `mcp`
+# (python -m mcp_server). Build context: backend/. arm64 native on Apple Silicon.
+FROM python:3.12-slim-trixie
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    RECEIPTS_DATA=/data
+
+# libGL/libGLU/libXrender for cadquery's OCP (generator), fonts for the PIL og cards.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates libgl1 libglu1-mesa libxrender1 libxext6 libsm6 libfontconfig1 fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir uv
+WORKDIR /app
+COPY pyproject.toml ./
+RUN uv pip install --system --no-cache -r pyproject.toml
+
+COPY . .
+
+# Non-root; /data is the named volume receipts-data (ownership is copied into a fresh volume).
+RUN groupadd -g 10001 app && useradd -u 10001 -g 10001 -M -s /usr/sbin/nologin app \
+    && mkdir -p /data && chown app:app /data
+USER 10001:10001
+VOLUME ["/data"]
+EXPOSE 8787
+CMD ["python", "-m", "mcp_server"]

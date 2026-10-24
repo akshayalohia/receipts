@@ -1,0 +1,66 @@
+# Receipts Hermes fleet: one profile per bot. fleet/profiles.py renders each profile's
+# config.yaml from this file; bootstrap.sh copies SOUL.md + skills/ and creates the cron jobs.
+# engine: claude = Claude subscription (`claude login` in the hermes container),
+#         codex  = ChatGPT/Codex subscription (`codex login`). Overrides: see .env.example.
+bots:
+  ceo:
+    engine: claude
+    schedule: "every 1h"
+    tools: [stats, list_leads, ads_status, queue_reply, post_event]
+    prompt: >-
+      Hourly CEO run. Call stats, list_leads and ads_status. Compare leads, claims and sales per
+      source, decide where the next hour goes, queue exactly one public X update with
+      queue_reply(kind="x_post"), and post one event saying what you changed and why.
+  scout:
+    engine: codex
+    schedule: "every 10m"
+    tools: [find_breakouts, find_milestones, post_event]
+    prompt: >-
+      Scout run. Call find_breakouts(hours=6). If the current minute is 0-9 or 30-39, or
+      breakouts found nothing new, also call find_milestones. Post one event with how many new
+      leads you found per source; post nothing if zero.
+  designer:
+    engine: claude
+    schedule: "every 10m"
+    tools: [list_leads, create_claim]
+    prompt: >-
+      Designer run. Call list_leads(status="new", limit=10). For each lead build its claim with
+      create_claim(lead_id=..., ...) following SOUL.md. Skip leads you cannot make a good trophy
+      for. create_claim posts its own event.
+  closer:
+    engine: claude
+    schedule: "every 10m"
+    tools: [list_leads, queue_reply, post_event, reply_to_mention]
+    prompt: >-
+      Closer run. Call list_leads(status="designed", limit=15). For each, write one short,
+      specific reply or email and queue it with queue_reply(lead_id=..., target_url=...,
+      claim_url=...). Post one event with the count queued.
+  ads:
+    engine: codex
+    schedule: "every 1h"
+    tools: [stats, ads_status, ads_draft]
+    prompt: >-
+      Hourly ads run. Call stats and ads_status. Draft at most two budget moves with ads_draft
+      (kill anything over $25 per sale, shift to the best cost per sale). Never exceed the cap
+      ads_status reports; ads_draft rejects anything above it.
+  production:
+    engine: codex
+    schedule: "every 15m"
+    tools: [list_orders, order_status, refund, stats, queue_reply, post_event]
+    prompt: >-
+      Production run. Call list_orders(status="needs_review") and stats. Handle each
+      needs_review order per SOUL.md. Post an event for every order you act on.
+  hiring:
+    engine: codex
+    schedule: "every 3h"
+    tools: [stats, list_orders, queue_reply, post_event]
+    prompt: >-
+      Hiring run. Call stats and list_orders. Draft at most two Terac tasks (reaction video for
+      a delivered trophy, street promoter shift) with queue_reply(kind="terac_task").
+  finance:
+    engine: codex
+    schedule: "every 1h"
+    tools: [stats, list_orders, ads_status, post_event]
+    prompt: >-
+      Hourly P&L. Call stats, list_orders and ads_status. Compute revenue, supplier cost, Whop
+      fees, ad spend and margin, apply the 20% reinvest rule, and post one P&L event.

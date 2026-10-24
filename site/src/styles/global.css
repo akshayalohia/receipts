@@ -1,0 +1,124 @@
+/* Receipts: thermal receipt meets trophy case. See site/DESIGN.md. */
+:root {
+  --paper: #f2eee4;
+  --paper-hi: #fbf9f4;
+  --ink: #151515;
+  --ink-2: #55524b;
+  --rule: #c8c1b2;
+  --red: #c21f17;
+  --red-ink: #fbf9f4;
+  --display: 'Big Shoulders Display', 'Arial Narrow', sans-serif;
+  --body: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --pad: clamp(1rem, 4vw, 3rem);
+  --max: 1320px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 1.0625rem/1.55 var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+img, canvas, svg { display: block; max-width: 100%; }
+a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 800; line-height: 0.95; margin: 0; letter-spacing: -0.005em; }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+
+:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+
+.wrap { max-width: var(--max); margin: 0 auto; padding-inline: var(--pad); }
+.mono { font-family: var(--mono); }
+.muted { color: var(--ink-2); }
+.small { font-size: 0.875rem; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Nav */
+.nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 64px; }
+.wordmark { font: 700 1.25rem/1 var(--mono); text-decoration: none; letter-spacing: -0.02em; display: inline-flex; align-items: center; min-height: 44px; }
+.nav a.navlink { font: 400 0.9375rem/1 var(--mono); min-height: 44px; display: inline-flex; align-items: center; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 48px; padding: 0 1.25rem; border: 2px solid var(--ink); border-radius: 0;
+  background: var(--paper-hi); color: var(--ink); font: 700 1rem/1 var(--mono);
+  text-decoration: none; cursor: pointer; white-space: nowrap;
+  transition: transform 120ms var(--ease), background-color 120ms var(--ease);
+}
+.btn:hover { background: #fff; text-decoration: none; }
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--red); border-color: var(--red); color: var(--red-ink); }
+.btn-primary:hover { background: #a91a13; border-color: #a91a13; }
+.btn[disabled], .btn[aria-disabled='true'] { opacity: 0.55; cursor: not-allowed; }
+
+/* Fields */
+.field { display: grid; gap: 0.375rem; }
+.field label, .label { font: 700 0.8125rem/1.2 var(--mono); }
+.field .hint { font-size: 0.8125rem; color: var(--ink-2); }
+.input, .field input, .field select, .field textarea {
+  width: 100%; min-height: 48px; padding: 0.625rem 0.75rem; border: 2px solid var(--ink); border-radius: 0;
+  background: var(--paper-hi); font: 400 1rem/1.4 var(--mono);
+}
+.field textarea { min-height: 96px; resize: vertical; }
+.field input::placeholder, .input::placeholder { color: #6f6a61; }
+.field input[aria-invalid='true'] { border-color: var(--red); }
+.err { color: var(--red); font: 400 0.8125rem/1.3 var(--mono); }
+
+/* Dotted rule */
+.dots { border: 0; border-top: 2px dotted var(--rule); margin: 0; }
+
+/* Receipt strip */
+.receipt {
+  --tooth: 10px;
+  position: relative; background: var(--paper-hi); color: var(--ink);
+  font: 400 0.875rem/1.5 var(--mono); padding: 1.5rem 1.25rem 1.75rem;
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 90deg, #0000 91deg) bottom / var(--tooth) 51% repeat-x,
+                conic-gradient(from 135deg at top, #0000, #000 1deg 90deg, #0000 91deg) top / var(--tooth) 51% repeat-x;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 90deg, #0000 91deg) bottom / var(--tooth) 51% repeat-x,
+        conic-gradient(from 135deg at top, #0000, #000 1deg 90deg, #0000 91deg) top / var(--tooth) 51% repeat-x;
+}
+/* Mask clips filters on the same element, so the hard paper shadow lives on a wrapper. */
+.receipt-wrap { filter: drop-shadow(4px 4px 0 var(--ink)); }
+.receipt .r-head { text-align: center; font-weight: 700; font-size: 1.125rem; }
+.receipt .r-line { display: flex; justify-content: space-between; gap: 1rem; padding: 0.15rem 0; }
+.receipt .r-line > span:last-child { text-align: right; overflow-wrap: anywhere; }
+.receipt .r-sep { border: 0; border-top: 1px dashed var(--ink); margin: 0.6rem 0; }
+.receipt .r-total { font-weight: 700; font-size: 1.125rem; color: var(--red); }
+.print-in { animation: print-in 180ms var(--ease) both; }
+@keyframes print-in { from { opacity: 0; transform: translateY(-0.4em); } to { opacity: 1; transform: none; } }
+
+.fade-up { animation: fade-up 300ms var(--ease) both; }
+.fade-up.d2 { animation-delay: 120ms; }
+@keyframes fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* Preview stage */
+.stage { position: relative; width: 100%; aspect-ratio: 1 / 1; background: transparent; touch-action: none; }
+.stage canvas { width: 100% !important; height: 100% !important; }
+.stage-empty {
+  position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 1rem;
+  border: 2px dashed var(--rule); font: 400 0.8125rem/1.4 var(--mono); color: var(--ink-2);
+}
+.stage[data-ready='1'] .stage-empty { display: none; }
+
+/* Footer */
+.footer { border-top: 2px solid var(--ink); margin-top: 4rem; padding-block: 1.25rem 2rem; font: 400 0.875rem/1.4 var(--mono); }
+.footer nav { display: flex; flex-wrap: wrap; gap: 0 1.25rem; align-items: center; }
+.footer a { min-height: 44px; display: inline-flex; align-items: center; }
+
+/* Prose (legal pages) */
+.prose { max-width: 62ch; padding-block: 2rem 1rem; }
+.prose h1 { font-size: clamp(2.5rem, 7vw, 4.5rem); margin-bottom: 1.5rem; }
+.prose h2 { font-size: 1.75rem; margin: 2rem 0 0.5rem; }
+.prose p, .prose ul { margin: 0 0 1rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

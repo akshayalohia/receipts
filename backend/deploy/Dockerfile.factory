@@ -1,0 +1,64 @@
+# syntax=docker/dockerfile:1
+# Factory image: FastAPI service (:8080) + factory MCP server (:9000), OrcaSlicer CLI,
+# xvfb, cadquery, cloudflared. Build context: backend/ (see docker-compose.yml).
+# Multi-arch: BuildKit sets TARGETARCH (amd64 on x86 hosts, arm64 on Apple Silicon).
+# Debian trixie, not bookworm: the OrcaSlicer "Ubuntu2404" AppImage needs GLIBC_2.38 and
+# GLIBCXX_3.4.32 (checked on the v2.4.2 binary); bookworm has glibc 2.36.
+FROM python:3.12-slim-trixie
+
+ARG TARGETARCH
+# OrcaSlicer release assets (names checked against the v2.4.2 release; factory/profiles/
+# were flattened from this version by factory/profiles/build_profiles.py).
+ARG ORCA_VERSION=2.4.2
+ARG ORCA_URL_AMD64=https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v${ORCA_VERSION}/OrcaSlicer_Linux_AppImage_Ubuntu2404_V${ORCA_VERSION}.AppImage
+ARG ORCA_URL_ARM64=https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v${ORCA_VERSION}/OrcaSlicer_Linux_AppImage_Ubuntu2404_aarch64_V${ORCA_VERSION}.AppImage
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    FACTORY_DATA=/data \
+    ORCA_SLICER_BIN=/opt/orca/AppRun
+
+# xvfb for the headless slicer; the libs OrcaSlicer links against and the AppImage does not
+# bundle (ldd on v2.4.2: libOpenGL.so.0, libGLU.so.1, libmspack.so.0, WebKitGTK 4.1, GTK 3,
+# GStreamer, libsecret); libgl/libxrender for cadquery's OCP.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates curl xvfb xauth \
+        libopengl0 libglu1-mesa libmspack0t64 \
+        libgtk-3-0t64 libwebkit2gtk-4.1-0 libgl1 libegl1 \
+        libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 libsecret-1-0 \
+        libxrender1 libxext6 libsm6 libfontconfig1 locales \
+    && rm -rf /var/lib/apt/lists/*
+
+# OrcaSlicer: extract the AppImage (no FUSE needed) to /opt/orca, so /opt/orca/AppRun is the CLI.
+RUN set -eu; \
+    case "${TARGETARCH:-amd64}" in \
+        amd64) url="${ORCA_URL_AMD64}" ;; \
+        arm64) url="${ORCA_URL_ARM64}" ;; \
+        *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL --retry 3 -o /tmp/orca.AppImage "$url"; \
+    chmod +x /tmp/orca.AppImage; \
+    cd /tmp && ./orca.AppImage --appimage-extract >/dev/null; \
+    mv /tmp/squashfs-root /opt/orca; \
+    rm /tmp/orca.AppImage; \
+    test -x /opt/orca/AppRun
+
+# cloudflared (used by the compose `cloudflared` service from this same image).
+RUN set -eu; \
+    curl -fsSL --retry 3 -o /usr/local/bin/cloudflared \
+        "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${TARGETARCH:-amd64}"; \
+    chmod +x /usr/local/bin/cloudflared; \
+    cloudflared --version
+
+RUN pip install --no-cache-dir uv
+
+WORKDIR /app
+COPY pyproject.toml ./
+# One dependency list for the service, MCP server and factory library (cadquery included).
+RUN uv pip install --system --no-cache -r pyproject.toml
+
+COPY . .
+
+VOLUME ["/data"]
+EXPOSE 8080 9000
+CMD ["python", "-m", "service.main"]
