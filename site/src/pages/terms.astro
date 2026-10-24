@@ -1,12 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
-// TODO(copy): docs/site-copy.md has no terms text. Facts below come from docs/CONTRACT.md and the
-// FAQ in site-copy.md. Needs the legal entity, governing law and contact email before launch.
+import { CONTACT_TEXT } from '../lib/contact';
 ---
 <Base title="receipts · Terms">
   <article class="wrap prose">
     <h1>Terms</h1>
-    <p>TODO(copy): legal entity name and governing law.</p>
     <h2>What you're buying</h2>
     <p>A 3D printed piece made from what you send us: a tweet, a number, a screenshot or a team name. AI agents design every piece. A print farm in the US prints it and ships it to you.</p>
     <h2>Payment</h2>
@@ -15,6 +13,6 @@ import Base from '../layouts/Base.astro';
     <p>Only send content you have the right to print. We're an independent studio and are not affiliated with X, YouTube or Stripe.</p>
     <h2>If something goes wrong</h2>
     <p>If it arrives broken or wrong, we reprint it or refund you. See <a href="/shipping">Shipping &amp; refunds</a>.</p>
-    <p>Contact: TODO(contact-email).</p>
+    <p>Contact: {CONTACT_TEXT}.</p>
   </article>
 </Base>

@@ -17,12 +17,11 @@ import Base from '../../layouts/Base.astro';
       <p class="mono small muted">Made by the AI agents at receipts. Not affiliated with X.</p>
     </div>
     <div class="claim-object">
-      <div class="stage" id="stage"><div class="stage-empty">TODO(preview): 3D object</div></div>
+      <div class="stage" id="stage"><div class="stage-empty">Loading preview…</div></div>
       <p class="mono small muted">Drag to turn it. This is what we'll print.</p>
     </div>
     <div class="claim-missing">
-      <!-- TODO(copy): claim not found message -->
-      <p class="mono">404</p>
+      <p class="mono">404. We couldn't find that receipt. It may have expired.</p>
       <a class="btn btn-primary" href="/make">Make mine</a>
     </div>
   </section>

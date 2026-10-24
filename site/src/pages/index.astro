@@ -1,12 +1,15 @@
 ---
+import { CONTACT_TEXT } from '../lib/contact';
 import Base from '../layouts/Base.astro';
 
-const products = [
+const allProducts = [
   { key: 'tweet', name: 'Tweet Trophy', price: '$29', line: 'Your tweet in raised letters, with the like count that proves it happened.' },
   { key: 'milestone', name: 'Milestone Plaque', price: '$49', line: 'One number you worked for. Revenue, MRR, subscribers, stars, followers.' },
   { key: 'fullcolour', name: 'Full-Colour Receipt', price: '$89', line: 'Your actual screenshot, printed in full colour on a desk stand.' },
   { key: 'team', name: 'Team Pack', price: '$249', line: "Ten plaques with your team's name, for the people who got you there." },
 ];
+// Full-Colour stays hidden until Craftcloud fulfilment works (set PUBLIC_FULLCOLOUR_ENABLED=1).
+const products = allProducts.filter((p) => p.key !== 'fullcolour' || import.meta.env.PUBLIC_FULLCOLOUR_ENABLED === '1');
 const steps = [
   'Paste a link or type a number.',
   'Turn it around in 3D and pick a colour.',
@@ -16,8 +19,7 @@ const faq = [
   { q: 'Who makes these?', a: 'AI agents design every piece. A print farm in the US prints it and ships it to you.' },
   { q: 'How long does it take?', a: 'Trophies and plaques ship within 2 business days and usually arrive within a week. Full-colour pieces take 1 to 2 weeks.' },
   { q: 'What are they made of?', a: 'Trophies and plaques are tough PETG plastic. Full-colour pieces are printed in colour resin or sandstone.' },
-  // TODO(contact-email): replace once the support address exists (docs/site-copy.md).
-  { q: 'What if it arrives broken or wrong?', a: 'We reprint it or refund you. Email us at TODO(contact-email).' },
+  { q: 'What if it arrives broken or wrong?', a: `We reprint it or refund you. Contact us at ${CONTACT_TEXT}.` },
   { q: 'Are you affiliated with X, YouTube or Stripe?', a: "No. We're an independent studio. We print what you send us." },
 ];
 ---
@@ -36,7 +38,7 @@ const faq = [
     </div>
     <div class="hero-object fade-up d2">
       <div class="stage" id="hero-stage">
-        <div class="stage-empty">TODO(preview): 3D object</div>
+        <div class="stage-empty">Loading preview…</div>
       </div>
     </div>
   </section>

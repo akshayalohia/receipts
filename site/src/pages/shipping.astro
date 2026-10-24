@@ -1,16 +1,19 @@
 ---
 import Base from '../layouts/Base.astro';
-// TODO(copy): docs/site-copy.md has no shipping page text. Facts below are from the FAQ and CONTRACT.
+import { CONTACT_TEXT } from '../lib/contact';
 ---
 <Base title="receipts · Shipping & refunds">
   <article class="wrap prose">
     <h1>Shipping &amp; refunds</h1>
     <h2>Where we ship</h2>
     <p>US shipping only for now.</p>
+    <h2>What it costs</h2>
+    <p>US shipping is included in the price you pay at checkout.</p>
     <h2>How long it takes</h2>
-    <p>Trophies and plaques ship within 2 business days and usually arrive within a week. Full-colour pieces take 1 to 2 weeks.</p>
+    <p>Trophies and plaques ship in 2 to 7 days and usually arrive within a week of shipping. Full-colour pieces take 1 to 2 weeks.</p>
     <h2>Broken or wrong</h2>
-    <p>We reprint it or refund you. Email us at TODO(contact-email).</p>
-    <p>TODO(copy): shipping cost and change-of-mind refund policy.</p>
+    <p>We reprint it or refund you. Contact us at {CONTACT_TEXT}.</p>
+    <h2>Changed your mind</h2>
+    <p>Every piece is made to order for you. If you want to cancel, tell us before it goes to print and we'll refund you in full. Once it's printed we can't take it back.</p>
   </article>
 </Base>

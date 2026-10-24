@@ -1,12 +1,14 @@
 ---
 import Base from '../layouts/Base.astro';
 
-const products = [
+const allProducts = [
   { key: 'tweet', name: 'Tweet Trophy', price: '$29' },
   { key: 'milestone', name: 'Milestone Plaque', price: '$49' },
   { key: 'fullcolour', name: 'Full-Colour Receipt', price: '$89' },
   { key: 'team', name: 'Team Pack', price: '$249' },
 ];
+// Full-Colour stays hidden until Craftcloud fulfilment works (set PUBLIC_FULLCOLOUR_ENABLED=1).
+const products = allProducts.filter((p) => p.key !== 'fullcolour' || import.meta.env.PUBLIC_FULLCOLOUR_ENABLED === '1');
 const colours = [
   { key: 'black', name: 'Black', hex: '#1b1b1b' },
   { key: 'white', name: 'White', hex: '#f7f7f4' },
@@ -35,7 +37,7 @@ const colours = [
     <aside class="side">
       <section class="blk blk-b" aria-label="3D preview">
         <div class="stage" id="stage">
-          <div class="stage-empty">TODO(preview): 3D preview</div>
+          <div class="stage-empty">Loading preview…</div>
         </div>
         <div class="stage-foot">
           <p class="mono small muted">Drag to turn it. This is what we'll print.</p>
@@ -392,7 +394,7 @@ const colours = [
       found.hidden = false;
       status.textContent = '';
     } catch {
-      status.textContent = 'TODO(copy): tweet lookup failed';
+      status.textContent = "Couldn't read that tweet. Check the link, or fill the fields in by hand.";
       lastTweet = '';
     }
     changed();
@@ -409,7 +411,7 @@ const colours = [
     const status = $('upload-status');
     state.upload_id = '';
     if (!file) return;
-    if (file.size > 8 * 1024 * 1024) { status.textContent = '8 MB max'; return; }
+    if (file.size > 4 * 1024 * 1024) { status.textContent = '4 MB max. Try a smaller screenshot.'; return; }
     if (state.image_url) URL.revokeObjectURL(state.image_url);
     state.image_url = URL.createObjectURL(file);
     state.upload_name = file.name;
@@ -419,7 +421,7 @@ const colours = [
       state.upload_id = await uploadImage(file);
       status.textContent = `OK ${file.name}`;
     } catch {
-      status.textContent = 'TODO(copy): upload failed';
+      status.textContent = 'Upload failed. Try again, or use a smaller image (4 MB max).';
     }
     changed();
   });
@@ -484,7 +486,7 @@ const colours = [
       btn.hidden = true;
       $('whop-checkout').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
     } catch (e) {
-      payErr.textContent = 'TODO(copy): checkout failed to load. ' + (e instanceof Error ? e.message : '');
+      payErr.textContent = 'Checkout failed to load. Refresh and try again. ' + (e instanceof Error ? e.message : '');
     } finally {
       btn.disabled = false;
     }

@@ -1,7 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-// TODO(copy): docs/site-copy.md has no privacy text. Facts below come from docs/CONTRACT.md
-// (what checkout metadata carries, upload TTL). Needs review and contact email before launch.
+import { CONTACT_TEXT } from '../lib/contact';
 ---
 <Base title="receipts · Privacy">
   <article class="wrap prose">
@@ -14,6 +13,6 @@ import Base from '../layouts/Base.astro';
     <p>Screenshots you upload for a Full-Colour Receipt are stored for up to 30 days.</p>
     <h2>Tracking</h2>
     <p>This site has no analytics pixels or ad trackers.</p>
-    <p>Questions or deletion requests: TODO(contact-email).</p>
+    <p>Questions or deletion requests: {CONTACT_TEXT}.</p>
   </article>
 </Base>
