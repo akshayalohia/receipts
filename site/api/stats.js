@@ -57,7 +57,7 @@ export async function fetchWhopTotals(env) {
   let params = { page: "1" };
   for (let i = 0; i < MAX_PAGES && params; i++) {
     const u = new URL(WHOP_PAYMENTS);
-    u.searchParams.set("company_id", env.WHOP_COMPANY_ID || "");
+    u.searchParams.set("account_id", env.WHOP_COMPANY_ID || ""); // Whop v1 rejects company_id here
     u.searchParams.set("per", String(PER_PAGE));
     u.searchParams.set("first", String(PER_PAGE));
     for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);

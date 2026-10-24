@@ -44,7 +44,7 @@ test("GET /api/stats: page-number pagination, paid filter, dollars->cents, Redis
   const stub = stubFetch((url, init) => {
     const u = new URL(url);
     assert.equal(u.origin + u.pathname, "https://api.whop.com/api/v1/payments");
-    assert.equal(u.searchParams.get("company_id"), "biz_123");
+    assert.equal(u.searchParams.get("account_id"), "biz_123");
     assert.equal(init.headers.authorization, "Bearer whop_sk_secret");
     return jsonResponse(pages[u.searchParams.get("page")]);
   });

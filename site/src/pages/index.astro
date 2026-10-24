@@ -11,13 +11,14 @@ const allProducts = [
 // Full-Colour stays hidden until Craftcloud fulfilment works (set PUBLIC_FULLCOLOUR_ENABLED=1).
 const products = allProducts.filter((p) => p.key !== 'fullcolour' || import.meta.env.PUBLIC_FULLCOLOUR_ENABLED === '1');
 const steps = [
-  'Paste a link or type a number.',
-  'Turn it around in 3D and pick a colour.',
-  'We print it and ship it. Plaques and trophies leave the print farm in 2 business days.',
+  'Describe it, drop a photo, or paste a tweet.',
+  'Turn it around in 3D, ask for changes, pick a size and colour.',
+  'We print it in tough PETG and ship it to you. US only for now.',
 ];
 const faq = [
-  { q: 'Who makes these?', a: 'AI agents design every piece. A print farm in the US prints it and ships it to you.' },
-  { q: 'How long does it take?', a: 'Trophies and plaques ship within 2 business days and usually arrive within a week. Full-colour pieces take 1 to 2 weeks.' },
+  { q: 'Who makes these?', a: 'AI agents design every piece from your description or photo. A print farm in the US prints it and ships it to you.' },
+  { q: 'How is the price worked out?', a: 'From your model: we measure how much plastic it needs at the size you pick, add printing and US shipping, and show you one total before you pay.' },
+  { q: 'How long does it take?', a: 'Trophies and plaques ship in 2 to 7 days. Custom figures are made to order and ship in 2 to 3 weeks.' },
   { q: 'What are they made of?', a: 'Trophies and plaques are tough PETG plastic. Full-colour pieces are printed in colour resin or sandstone.' },
   { q: 'What if it arrives broken or wrong?', a: `We reprint it or refund you. Contact us at ${CONTACT_TEXT}.` },
   { q: 'Are you affiliated with X, YouTube or Stripe?', a: "No. We're an independent studio. We print what you send us." },
@@ -26,36 +27,38 @@ const faq = [
 <Base>
   <section class="wrap hero">
     <div class="hero-copy fade-up">
-      <h1>We 3D print your receipts.</h1>
-      <p class="hero-sub">Your viral tweet. Your first $10k month. Your 10,000th subscriber. Paste it in, turn it around in 3D, and we'll ship it to your desk.</p>
+      <h1>Describe it. We 3D print it.</h1>
+      <p class="hero-sub">Type any idea or drop a photo. Your pet, your mascot, your trophy, your weird little dream object. You see it in 3D in about 30 seconds, tweak it, and we print it and ship it to you.</p>
       <form class="hero-form" id="hero-form" novalidate>
-        <label class="sr-only" for="hero-input">Tweet link or milestone</label>
-        <input class="input" id="hero-input" name="q" type="text" inputmode="url" autocomplete="off"
-          placeholder="Paste a tweet link, or type a milestone like $10,000 MRR" />
-        <button class="btn btn-primary" type="submit">Make mine</button>
+        <label class="sr-only" for="hero-input">Describe what you want printed, or paste a tweet link</label>
+        <textarea class="input" id="hero-input" name="q" rows="3" maxlength="500" autocomplete="off"
+          placeholder="my golden retriever wearing a graduation cap"></textarea>
+        <div class="hero-row">
+          <label class="btn photo-btn" for="hero-photo"><span id="photo-label">+ Add a photo</span></label>
+          <input id="hero-photo" type="file" accept="image/png,image/jpeg,image/webp" hidden />
+          <button class="btn btn-primary" id="hero-go" type="submit">Make my 3D model</button>
+        </div>
+        <div class="chips" id="chips">
+          <button type="button" class="chip">a tiny astronaut cat planting a flag on a pizza</button>
+          <button type="button" class="chip">our startup mascot, a robot holding a trophy</button>
+          <button type="button" class="chip">a dragon curled around a coffee mug</button>
+        </div>
+        <p class="err" id="hero-err" role="alert"></p>
       </form>
-      <p class="small muted mono">Free 3D preview. You only pay if you want it printed.</p>
+      <p class="small muted mono">Free 3D preview. You only pay if you want it printed. Paste a tweet link to get a Tweet Trophy instead.</p>
     </div>
     <div class="hero-object fade-up d2">
-      <div class="stage" id="hero-stage">
-        <div class="stage-empty">Loading preview…</div>
+      <div class="stage hero-stage" id="hero-stage">
+        <div class="stage-empty" id="hero-msg">Loading preview…</div>
+        <img id="hero-concept" alt="" hidden />
       </div>
-    </div>
-  </section>
-
-  <section class="strip" aria-label="Live challenge">
-    <div class="wrap strip-inner">
-      <p>This company is run by AI agents. It has 12 hours to make $2,000.</p>
-      <p class="strip-stats">
-        <span><span data-stat="revenue">$0</span> of <span data-stat="goal">$2,000</span></span>
-        <span><span data-stat="left">--:--</span> left</span>
-      </p>
-      <a href="/live">→ Watch it live</a>
+      <p class="mono small muted" id="hero-caption">Example: “my golden retriever wearing a graduation cap”. <a href="/r?id=demo">Open it →</a></p>
     </div>
   </section>
 
   <section class="wrap section" aria-labelledby="pick-h">
-    <h2 id="pick-h">Pick your receipt</h2>
+    <h2 id="pick-h">Or start from a preset</h2>
+    <p class="muted preset-sub">Trophies for your wins, designed from the real thing: your actual tweet, your actual number.</p>
     <ul class="shelf" role="list">
       {products.map((p) => (
         <li>
@@ -104,15 +107,19 @@ const faq = [
   }
   .hero h1 { font-size: clamp(3.25rem, 11vw, 7.5rem); font-weight: 900; line-height: 0.9; max-width: 11ch; }
   .hero-sub { margin-top: 1.25rem; max-width: 46ch; font-size: 1.125rem; }
-  .hero-form { display: grid; grid-template-columns: 1fr; gap: 0.5rem; margin: 1.5rem 0 0.625rem; max-width: 640px; }
-  .hero-form .input { min-height: 56px; font-size: 1rem; }
+  .hero-form { display: grid; gap: 0.625rem; margin: 1.5rem 0 0.625rem; max-width: 640px; }
+  .hero-form .input { min-height: 96px; font-size: 1.0625rem; resize: vertical; }
   .hero-form .btn { min-height: 56px; }
+  .hero-row { display: grid; grid-template-columns: auto 1fr; gap: 0.5rem; }
+  .photo-btn { cursor: pointer; }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+  .chip { font: 400 0.8125rem/1.2 var(--mono); padding: 0.45rem 0.7rem; border: 1px solid var(--rule); background: var(--paper-hi); cursor: pointer; border-radius: 999px; }
+  .chip:hover { border-color: var(--ink); }
+  .hero-stage { border: 2px solid var(--ink); background: radial-gradient(ellipse at 50% 40%, #fbf9f4 0%, var(--paper) 70%); }
+  .hero-stage img { position: absolute; inset: 10%; width: 80%; height: 80%; object-fit: contain; opacity: 0.6; }
+  .preset-sub { margin: -0.75rem 0 1.5rem; max-width: 60ch; }
   .hero-object { width: 100%; }
   .hero-object .stage { aspect-ratio: 1 / 0.85; }
-  @media (min-width: 640px) {
-    .hero-form { grid-template-columns: 1fr auto; gap: 0; }
-    .hero-form .input { border-right: 0; }
-  }
   @media (min-width: 960px) {
     .hero { grid-template-columns: 1.05fr 1fr; gap: 2rem; padding-block: 3rem 4rem; min-height: calc(100dvh - 64px - 4rem); }
     .hero-object .stage { aspect-ratio: 1 / 1; }
@@ -169,51 +176,71 @@ const faq = [
 </style>
 
 <script>
-  import { getStats, dollars, timeLeft, isTweetUrl, DEFAULT_ENDS_AT, DEFAULT_GOAL_CENTS } from '../lib/api';
-  import { mountPreviewSafe, loadPreview, type PreviewParams } from '../components/preview';
+  import { isTweetUrl } from '../lib/api';
+  import { loadPreview, type PreviewParams } from '../components/preview';
 
-  // Hero input routing
+  // Hero: describe / photo -> custom render; tweet link -> Tweet Trophy builder
   const form = document.getElementById('hero-form') as HTMLFormElement;
-  const input = document.getElementById('hero-input') as HTMLInputElement;
-  form.addEventListener('submit', (e) => {
+  const input = document.getElementById('hero-input') as HTMLTextAreaElement;
+  const photo = document.getElementById('hero-photo') as HTMLInputElement;
+  const go = document.getElementById('hero-go') as HTMLButtonElement;
+  const err = document.getElementById('hero-err')!;
+  const msg = document.getElementById('hero-msg')!;
+  const stage = document.getElementById('hero-stage')!;
+  const conceptImg = document.getElementById('hero-concept') as HTMLImageElement;
+  photo.addEventListener('change', () => {
+    document.getElementById('photo-label')!.textContent = photo.files?.[0] ? `Photo: ${photo.files[0].name.slice(0, 24)}` : '+ Add a photo';
+  });
+  document.getElementById('chips')!.addEventListener('click', (e) => {
+    const c = (e.target as HTMLElement).closest('.chip'); if (c) { input.value = c.textContent || ''; input.focus(); }
+  });
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    err.textContent = '';
     const q = input.value.trim();
-    const p = new URLSearchParams(location.search);
-    const keep = new URLSearchParams();
-    for (const [k, v] of p) if (k.startsWith('utm_')) keep.set(k, v);
-    if (q && isTweetUrl(q)) {
-      keep.set('product', 'tweet');
-      keep.set('url', q);
-    } else {
-      keep.set('product', 'milestone');
-      if (q) keep.set('number', q);
+    const file = photo.files?.[0];
+    const utm = new URLSearchParams();
+    for (const [k, v] of new URLSearchParams(location.search)) if (k.startsWith('utm_')) utm.set(k, v);
+    if (q && isTweetUrl(q) && !file) { utm.set('product', 'tweet'); utm.set('url', q); location.href = `/make?${utm}`; return; }
+    if (!q && !file) { err.textContent = 'Describe what you want, or add a photo.'; return; }
+    if (file && file.size > 4 * 1024 * 1024) { err.textContent = 'Photos must be under 4 MB.'; return; }
+    go.disabled = true;
+    const t0 = Date.now();
+    const tick = setInterval(() => { go.textContent = `Making your model… ${Math.round((Date.now() - t0) / 1000)}s`; }, 500);
+    try {
+      hero?.destroy(); hero = null; delete stage.dataset.ready;
+      msg.textContent = 'Drawing your idea…';
+      const fd = new FormData();
+      if (q) fd.set('prompt', q);
+      if (file) fd.set('photo', file);
+      const res = await fetch('/api/render', { method: 'POST', body: fd });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || 'Something went wrong. Try again.');
+      conceptImg.src = j.conceptUrl; conceptImg.hidden = false;
+      msg.textContent = 'Sculpting it in 3D (about 20 seconds)…';
+      for (let i = 0; i < 120; i++) {
+        await new Promise((r) => setTimeout(r, 1500));
+        const s = await fetch(`/api/render/${encodeURIComponent(j.id)}`).then((r) => r.json()).catch(() => null);
+        if (s?.state === 'done') { utm.set('id', j.id); location.href = `/r?${utm}`; return; }
+        if (s?.state === 'failed') throw new Error("The 3D step didn't work for that one. Try rewording it.");
+      }
+      throw new Error('This is taking unusually long. Try again in a minute.');
+    } catch (ex) {
+      err.textContent = ex instanceof Error ? ex.message : 'Something went wrong.';
+      msg.textContent = '';
+    } finally {
+      clearInterval(tick); go.disabled = false; go.textContent = 'Make my 3D model';
     }
-    location.href = `/make?${keep.toString()}`;
   });
 
-  // Live strip
-  let endsAt = DEFAULT_ENDS_AT;
-  const set = (k: string, v: string) => document.querySelectorAll(`[data-stat="${k}"]`).forEach((n) => (n.textContent = v));
-  async function refresh() {
-    try {
-      const s = await getStats();
-      endsAt = s.ends_at || endsAt;
-      set('revenue', dollars(s.revenue_cents || 0));
-      set('goal', dollars(s.goal_cents || DEFAULT_GOAL_CENTS));
-      if (typeof s.founding_left === 'number') {
-        set('founding', String(s.founding_left));
-        document.getElementById('founding-left')!.hidden = false;
-      }
-    } catch { /* keep last values */ }
-    set('left', timeLeft(endsAt));
-  }
-  refresh();
-  setInterval(refresh, 30_000);
-  setInterval(() => set('left', timeLeft(endsAt)), 1_000 * 15);
-
-  // Hero object
-  const heroParams: PreviewParams = { product: 'milestone', colour: 'gold', number: '$10,000', label: 'MRR' };
-  mountPreviewSafe(document.getElementById('hero-stage')!, heroParams);
+  // Hero object: a real customer-style render, in the same viewer as /r
+  let hero: { destroy(): void } | null = null;
+  import('../lib/figure-viewer').then(async ({ mountFigureViewer }) => {
+    const v = mountFigureViewer(stage);
+    hero = v;
+    v.setColour('#c9a24b');
+    try { await v.load('/examples/dog.glb'); } catch { msg.textContent = ''; }
+  });
 
   // Product shelf: render each object once with snapshot(), one at a time, then free the GL context.
   const samples: Record<string, PreviewParams> = {

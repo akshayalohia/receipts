@@ -1,0 +1,244 @@
+---
+import Base from '../layouts/Base.astro';
+const colours = [
+  { key: 'grey', name: 'Grey', hex: '#9a9a9a' },
+  { key: 'white', name: 'White', hex: '#f2f1ed' },
+  { key: 'black', name: 'Black', hex: '#1d1d1f' },
+  { key: 'gold', name: 'Gold', hex: '#c9a24b' },
+  { key: 'red', name: 'Red', hex: '#c3302c' },
+  { key: 'blue', name: 'Blue', hex: '#2554c7' },
+  { key: 'green', name: 'Green', hex: '#2d8550' },
+];
+const sizes = [
+  { id: 'S', label: 'Desk', mm: 75 },
+  { id: 'M', label: 'Shelf', mm: 100 },
+  { id: 'L', label: 'Statement', mm: 150 },
+];
+const bases = [
+  { id: 'round', label: 'Round plinth' },
+  { id: 'square', label: 'Square plinth' },
+  { id: 'none', label: 'No plinth' },
+];
+---
+<Base title="receipts · Your 3D model" noindex>
+  <section class="wrap rgrid">
+    <div class="r-view">
+      <div class="stage r-stage" id="stage">
+        <div class="stage-empty" id="stage-msg">Loading your model…</div>
+        <img id="concept" alt="" hidden />
+      </div>
+      <p class="mono small muted" id="prompt-line"></p>
+      <p class="mono small muted">Drag to turn it. Colour and plinth update live. This is the shape we print.</p>
+    </div>
+
+    <aside class="r-side">
+      <h1 class="r-h">Your model</h1>
+
+      <form id="edit-form" class="field">
+        <label for="edit">Change something</label>
+        <input id="edit" maxlength="300" placeholder="give it a cape · make it hold a trophy · bigger smile" />
+        <button class="btn" id="edit-btn" type="submit" disabled>Apply edit (~30 s)</button>
+        <span class="err" id="edit-err"></span>
+      </form>
+
+      <div class="field">
+        <span class="label">Size</span>
+        <div class="opts" id="sizes">
+          {sizes.map((s) => (
+            <button type="button" class="opt" data-size={s.id} aria-pressed={s.id === 'M' ? 'true' : 'false'}>
+              <strong>{s.label}</strong><span class="mono small">{s.mm} mm tall</span><span class="mono small price" data-price={s.id}></span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="label">Colour (PETG)</span>
+        <div class="swatches" id="colours">
+          {colours.map((c) => (
+            <button type="button" class="sw" data-colour={c.key} data-hex={c.hex} title={c.name} aria-label={c.name}
+              aria-pressed={c.key === 'grey' ? 'true' : 'false'} style={`--c:${c.hex}`}></button>
+          ))}
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="label">Plinth</span>
+        <div class="opts opts-3" id="bases">
+          {bases.map((b) => (
+            <button type="button" class="opt" data-base={b.id} aria-pressed={b.id === 'round' ? 'true' : 'false'}><strong>{b.label}</strong></button>
+          ))}
+        </div>
+      </div>
+
+      <div class="receipt-wrap"><div class="receipt mono" id="summary">
+        <div class="r-line"><span>CUSTOM FIGURE</span><span id="sum-size">—</span></div>
+        <div class="r-line"><span>COLOUR</span><span id="sum-colour">GREY</span></div>
+        <div class="r-line"><span>PLINTH</span><span id="sum-base">ROUND</span></div>
+        <div class="r-line"><span>US SHIPPING</span><span>INCLUDED</span></div>
+        <hr class="r-sep" />
+        <div class="r-line r-total"><span>TOTAL</span><span id="sum-total">—</span></div>
+      </div></div>
+
+      <form id="ship" class="ship" novalidate>
+        <h2 class="r-h2">Where should it go</h2>
+        <div class="field"><label for="s-name">Full name</label><input id="s-name" required autocomplete="name" /></div>
+        <div class="field"><label for="s-email">Email</label><input id="s-email" type="email" required autocomplete="email" /></div>
+        <div class="field"><label for="s-line1">Address line 1</label><input id="s-line1" required autocomplete="address-line1" /></div>
+        <div class="field"><label for="s-line2">Address line 2</label><input id="s-line2" autocomplete="address-line2" /></div>
+        <div class="row3">
+          <div class="field"><label for="s-city">City</label><input id="s-city" required autocomplete="address-level2" /></div>
+          <div class="field"><label for="s-state">State</label><input id="s-state" required maxlength="2" autocomplete="address-level1" /></div>
+          <div class="field"><label for="s-zip">ZIP</label><input id="s-zip" required inputmode="numeric" autocomplete="postal-code" /></div>
+        </div>
+        <button class="btn btn-primary pay" id="pay-btn" type="submit" disabled>Waiting for your model…</button>
+        <p class="err" id="pay-err"></p>
+        <p class="mono small muted">Made to order in PETG plastic. US shipping only. You'll get an email when it ships.</p>
+      </form>
+      <div id="whop-checkout"></div>
+    </aside>
+  </section>
+</Base>
+
+<style>
+  .rgrid { display: grid; gap: 2rem; padding-block: 1.5rem 3rem; }
+  @media (min-width: 960px) { .rgrid { grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr); align-items: start; } .r-view { position: sticky; top: 1rem; } }
+  .r-stage { aspect-ratio: 1 / 1; background: radial-gradient(ellipse at 50% 40%, #fbf9f4 0%, var(--paper) 70%); border: 2px solid var(--ink); }
+  .r-stage img { position: absolute; inset: 10%; width: 80%; height: 80%; object-fit: contain; opacity: 0.55; filter: grayscale(0.2); }
+  .r-h { font-size: clamp(2.25rem, 5vw, 3.5rem); }
+  .r-h2 { font-size: 1.75rem; margin-top: 0.5rem; }
+  .r-side { display: grid; gap: 1.25rem; align-content: start; }
+  .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+  .opt { display: grid; gap: 0.15rem; text-align: left; padding: 0.7rem; border: 2px solid var(--ink); background: var(--paper-hi); cursor: pointer; font: inherit; min-height: 44px; }
+  .opt[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
+  .opt .price { font-weight: 700; }
+  .swatches { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .sw { width: 40px; height: 40px; border-radius: 999px; border: 2px solid var(--ink); background: var(--c); cursor: pointer; }
+  .sw[aria-pressed='true'] { outline: 3px solid var(--red); outline-offset: 2px; }
+  .ship { display: grid; gap: 0.75rem; }
+  .row3 { display: grid; grid-template-columns: 2fr 1fr 1.3fr; gap: 0.5rem; }
+  .pay { min-height: 56px; font-size: 1.05rem; }
+</style>
+
+<script>
+  import { mountFigureViewer, type Base as PlinthBase } from '../lib/figure-viewer';
+  import { loadWhop } from '@whop/elements';
+
+  const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+  const qs = new URLSearchParams(location.search);
+  const id = qs.get('id') || '';
+  const fmt = (c: number) => `$${(c / 100).toFixed(0)}`;
+  const state = { size: 'M', colour: 'grey', hex: '#9a9a9a', base: 'round' as PlinthBase, prices: {} as Record<string, number>, ready: false };
+  const viewer = mountFigureViewer($('stage'));
+
+  function press(group: string, attr: string, val: string) {
+    for (const b of $(group).querySelectorAll<HTMLButtonElement>(`[${attr}]`)) b.setAttribute('aria-pressed', String(b.getAttribute(attr) === val));
+  }
+  function render() {
+    for (const s of ['S', 'M', 'L']) {
+      const el = document.querySelector<HTMLElement>(`[data-price="${s}"]`);
+      const p = state.prices[`${s}:${state.base}`];
+      if (el) el.textContent = p ? fmt(p) : '';
+    }
+    const p = state.prices[`${state.size}:${state.base}`];
+    $('sum-size').textContent = { S: '75 MM', M: '100 MM', L: '150 MM' }[state.size] || '';
+    $('sum-colour').textContent = state.colour.toUpperCase();
+    $('sum-base').textContent = state.base.toUpperCase();
+    $('sum-total').textContent = p ? fmt(p) : '—';
+    const pay = $<HTMLButtonElement>('pay-btn');
+    pay.disabled = !state.ready || !p;
+    pay.textContent = state.ready && p ? `Pay ${fmt(p)} and print it` : 'Waiting for your model…';
+  }
+
+  $('sizes').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-size]'); if (!b) return;
+    state.size = b.dataset.size!; press('sizes', 'data-size', state.size); render();
+  });
+  $('colours').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-colour]'); if (!b) return;
+    state.colour = b.dataset.colour!; state.hex = b.dataset.hex!; press('colours', 'data-colour', state.colour);
+    viewer.setColour(state.hex); render();
+  });
+  $('bases').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-base]'); if (!b) return;
+    state.base = b.dataset.base as PlinthBase; press('bases', 'data-base', state.base); viewer.setBase(state.base); render();
+  });
+
+  async function poll() {
+    if (!id) { $('stage-msg').textContent = 'No model here. Start one on the home page.'; return; }
+    for (let i = 0; i < 160; i++) {
+      const s = await fetch(`/api/render/${encodeURIComponent(id)}`).then((r) => r.json()).catch(() => null);
+      if (s?.conceptUrl && !state.ready) { const img = $<HTMLImageElement>('concept'); img.src = s.conceptUrl; img.hidden = false; }
+      if (s?.prompt) $('prompt-line').textContent = `“${s.prompt}”`;
+      if (s?.state === 'done') {
+        state.prices = s.prices || {};
+        $('stage-msg').textContent = 'Loading the 3D model…';
+        await viewer.load(s.glbUrl);
+        $('concept').hidden = true;
+        state.ready = true;
+        $<HTMLButtonElement>('edit-btn').disabled = false;
+        render();
+        return;
+      }
+      if (s?.state === 'failed' || (s && s.ok === false)) { $('stage-msg').textContent = "That one didn't sculpt well. Go back and try a different idea."; return; }
+      $('stage-msg').textContent = s?.state === 'queued' ? 'In the queue…' : 'Sculpting in 3D…';
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    $('stage-msg').textContent = 'This is taking unusually long. Refresh in a minute.';
+  }
+
+  $('edit-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const instruction = $<HTMLInputElement>('edit').value.trim();
+    if (!instruction) return;
+    const btn = $<HTMLButtonElement>('edit-btn');
+    btn.disabled = true; btn.textContent = 'Re-sculpting…'; $('edit-err').textContent = '';
+    const res = await fetch('/api/render/edit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, instruction }) });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) { $('edit-err').textContent = j.error || 'Edit failed.'; btn.disabled = false; btn.textContent = 'Apply edit (~30 s)'; return; }
+    location.href = `/r?id=${encodeURIComponent(j.id)}`;
+  });
+
+  $('ship').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = $<HTMLFormElement>('ship');
+    if (!f.reportValidity()) return;
+    const v = (k: string) => $<HTMLInputElement>(k).value.trim();
+    const pay = $<HTMLButtonElement>('pay-btn');
+    pay.disabled = true; $('pay-err').textContent = '';
+    try {
+      const res = await fetch('/api/checkout', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id, size: state.size, base: state.base, colour: state.colour }) });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || 'Checkout failed to start.');
+      const ref = Math.random().toString(36).slice(2, 10).toUpperCase();
+      const q = j.quote;
+      const metadata: Record<string, string> = {
+        order_ref: ref, product: 'custom', size: q.size, height_mm: String(q.heightMm), base: q.base, colour: q.colour,
+        est_volume_cm3: String(q.volume_cm3), est_cost_cents: String(q.est_cost_cents), glb: String(q.glb).slice(0, 500),
+        concept: String(q.concept).slice(0, 500), render_id: String(q.render_id).slice(0, 500),
+        ship_name: v('s-name'), ship_email: v('s-email'), ship_line1: v('s-line1'), ship_line2: v('s-line2'),
+        ship_city: v('s-city'), ship_state: v('s-state'), ship_zip: v('s-zip'), ship_country: 'US',
+        source: qs.get('utm_source') || 'direct',
+      };
+      for (const k of Object.keys(metadata)) if (!metadata[k]) delete metadata[k];
+      const W = await loadWhop();
+      const whop = W({ locale: 'en' });
+      const handle = whop.checkout.create({ plan: j.plan, metadata, returnUrl: `${location.origin}/order?ref=${ref}`, analytics: false } as any);
+      const el = handle.create('checkout', {
+        buyerEmail: v('s-email'),
+        defaultValues: { shippingAddress: { name: v('s-name'), line1: v('s-line1'), line2: v('s-line2'), city: v('s-city'), state: v('s-state'), postal_code: v('s-zip'), country: 'US' } },
+        onError: (er: any) => { $('pay-err').textContent = er?.message || 'Payment error'; },
+      } as any);
+      el.mount($('whop-checkout'));
+      pay.hidden = true;
+      $('whop-checkout').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (er) {
+      $('pay-err').textContent = er instanceof Error ? er.message : 'Checkout failed to start.';
+      pay.disabled = false;
+    }
+  });
+
+  render();
+  poll();
+</script>
