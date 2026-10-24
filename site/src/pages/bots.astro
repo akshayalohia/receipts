@@ -1,0 +1,345 @@
+---
+import Base from '../layouts/Base.astro';
+
+type Kind = 'bot' | 'ext';
+interface N { id: string; x: number; y: number; kind: Kind; title: string; sub: string; chip?: string }
+const W = 164, H = 92;
+const nodes: N[] = [
+  { id: 'ceo', x: 640, y: 74, kind: 'bot', title: 'CEO', sub: 'Reads numbers, steers the team', chip: 'CLAUDE · 1H' },
+  { id: 'ads', x: 1180, y: 74, kind: 'bot', title: 'Ads', sub: 'Retargets claim-page visitors', chip: 'CODEX · 1H' },
+  { id: 'src', x: 100, y: 270, kind: 'ext', title: 'Exa · Solari · X', sub: 'Where wins happen online' },
+  { id: 'scout', x: 310, y: 270, kind: 'bot', title: 'Scout', sub: 'Spots wins as they happen', chip: 'CODEX · 10M' },
+  { id: 'designer', x: 520, y: 270, kind: 'bot', title: 'Designer', sub: 'Builds their trophy first', chip: 'CLAUDE · 10M' },
+  { id: 'closer', x: 730, y: 270, kind: 'bot', title: 'Closer', sub: '“We already made yours”', chip: 'CLAUDE · 10M' },
+  { id: 'x', x: 940, y: 270, kind: 'ext', title: '@trovefactory', sub: 'Posts, replies, order drops' },
+  { id: 'claim', x: 1180, y: 270, kind: 'ext', title: 'Claim page', sub: 'trovefactory.shop/c/you' },
+  { id: 'whop', x: 1180, y: 480, kind: 'ext', title: 'Whop checkout', sub: 'Every dollar counted here' },
+  { id: 'production', x: 940, y: 480, kind: 'bot', title: 'Production', sub: 'Print file → supplier', chip: 'CODEX · 15M' },
+  { id: 'supplier', x: 730, y: 480, kind: 'ext', title: 'Slant 3D · Craftcloud', sub: 'PETG + full colour' },
+  { id: 'door', x: 520, y: 480, kind: 'ext', title: 'Their desk', sub: 'Ships in 2-7 days' },
+  { id: 'hiring', x: 310, y: 480, kind: 'bot', title: 'Hiring', sub: 'Books humans on Terac', chip: 'CODEX · 3H' },
+  { id: 'terac', x: 100, y: 480, kind: 'ext', title: 'Terac', sub: 'Real people, on demand' },
+  { id: 'finance', x: 1180, y: 680, kind: 'bot', title: 'Finance', sub: 'Live P&L, 20% reinvest', chip: 'CODEX · 1H' },
+];
+const at = Object.fromEntries(nodes.map((n) => [n.id, n]));
+
+// flow edges: [from, to, label]
+const flows: [string, string, string][] = [
+  ['src', 'scout', 'win'], ['scout', 'designer', 'lead'], ['designer', 'closer', 'claim'],
+  ['closer', 'x', 'reply'], ['x', 'claim', 'click'], ['ads', 'claim', 'visit'],
+  ['claim', 'whop', 'order'], ['whop', 'production', 'paid'], ['production', 'supplier', 'STL'],
+  ['supplier', 'door', 'parcel'], ['door', 'hiring', 'film'], ['hiring', 'terac', 'task'],
+  ['whop', 'finance', 'P&L'],
+];
+function edge(a: N, b: N) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    const s = Math.sign(dx);
+    return { d: `M${a.x + s * W / 2} ${a.y} L${b.x - s * W / 2} ${b.y}`, lx: (a.x + b.x) / 2, ly: a.y - 10 };
+  }
+  const s = Math.sign(dy);
+  return { d: `M${a.x} ${a.y + s * H / 2} L${b.x} ${b.y - s * H / 2}`, lx: a.x + 10, ly: (a.y + b.y) / 2 + 4, v: true };
+}
+const flowPaths = flows.map(([f, t, label], i) => ({ id: `e${i}`, from: f, to: t, label, ...edge(at[f], at[t]) }));
+
+// CEO command lines (dashed, curved)
+const reports = ['scout', 'designer', 'closer', 'ads', 'production', 'hiring', 'finance'];
+const cmd = reports.map((id) => {
+  const b = at[id];
+  const sx = 640, sy = 74 + H / 2;
+  const ex = b.x, ey = b.y - H / 2;
+  if (id === 'ads') return { id, d: `M${640 + W / 2} 74 L${b.x - W / 2} 74` };
+  if (id === 'finance') return { id, d: `M${640 + W / 2} 60 C 1080 160, 1290 380, 1278 560 S 1272 650, ${b.x + W / 2} ${b.y}` };
+  const my = sy + (ey - sy) * 0.55;
+  return { id, d: `M${sx} ${sy} C ${sx} ${my}, ${ex} ${sy + 20}, ${ex} ${ey}` };
+});
+
+const bots = [
+  { id: 'ceo', name: 'CEO', engine: 'Claude', every: 'every hour', does: 'Compares leads → claim pages → sales for every source, picks the one change for the next hour, writes the brand status post and calls in Terac testers when the numbers can’t decide.', tools: ['stats', 'list_leads', 'ads_status', 'queue_reply', 'post_event'] },
+  { id: 'scout', name: 'Scout', engine: 'Codex', every: 'every 10 min', does: 'Hunts breakout posts (far above the author’s normal) and milestones: Show HN, Product Hunt top 5, GitHub stars, YouTube subs, Devpost winners, LinkedIn launches.', tools: ['find_breakouts', 'find_milestones', 'post_event'] },
+  { id: 'designer', name: 'Designer', engine: 'Claude', every: 'every 10 min', does: 'Turns each lead into a finished trophy and a claim page using their real words and numbers, before anyone has asked.', tools: ['list_leads', 'create_claim'] },
+  { id: 'closer', name: 'Closer', engine: 'Claude', every: 'every 10 min', does: 'Writes one short, specific note per lead: “we already made yours”, with the claim link. Honours every “no” at once.', tools: ['list_leads', 'queue_reply', 'reply_to_mention', 'post_event'] },
+  { id: 'ads', name: 'Ads', engine: 'Codex', every: 'every hour', does: 'Retargets claim-page visitors, kills anything over $25 per sale and shifts budget to the cheapest cost per sale, inside a hard daily cap.', tools: ['stats', 'ads_status', 'ads_draft'] },
+  { id: 'production', name: 'Production', engine: 'Codex', every: 'every 15 min', does: 'Generates the print file for every paid order, sends it to Slant 3D or Craftcloud, checks the 40% margin floor and chases anything stuck.', tools: ['list_orders', 'order_status', 'refund', 'queue_reply', 'post_event'] },
+  { id: 'finance', name: 'Finance', engine: 'Codex', every: 'every hour', does: 'Live P&L: revenue, Whop fees, supplier cost, ad spend. Unlocks 20% of revenue for ads and Terac.', tools: ['stats', 'list_orders', 'ads_status', 'post_event'] },
+  { id: 'hiring', name: 'Hiring', engine: 'Codex', every: 'every 3 hours', does: 'Books real people on Terac for what bots can’t do: unboxing videos (with consent), street-promo shifts, print checks.', tools: ['stats', 'list_orders', 'queue_reply', 'post_event'] },
+];
+---
+<Base title="Trove · The bots that run it" description="Eight AI agents run Trove end to end: finding wins, designing trophies, selling, printing, shipping and keeping the books. Here is how they fit together.">
+  <div class="wrap bots">
+    <header class="head">
+      <p class="kicker mono">ORG CHART · ZERO HUMANS IN THE LOOP</p>
+      <h1>Eight bots.<br /><span>One company.</span></h1>
+      <p class="lede">Trove is run end to end by AI agents. Each one has a job, a clock and a short list of tools. They hand work to each other from someone’s win online to a trophy on their desk.</p>
+      <div class="strip mono">
+        <div><b id="rev">$0</b><span>revenue (Whop)</span></div>
+        <div><b id="orders">0</b><span>orders</span></div>
+        <div><b id="left">--:--:--</b><span>time left</span></div>
+        <div><b>8</b><span>agents online</span></div>
+      </div>
+    </header>
+
+    <section class="board" aria-label="Diagram of the Trove agent team">
+      <div class="board-top mono">
+        <span><i class="dot"></i> ALL SYSTEMS RUNNING</span>
+        <span class="legend"><i class="lg bot"></i>agent <i class="lg ext"></i>outside service <i class="lg cmd"></i>CEO command</span>
+      </div>
+      <div class="scroller">
+        <svg viewBox="0 0 1290 760" role="img" aria-labelledby="dg-t" id="diagram">
+          <title id="dg-t">Exa, Solari and X feed the Scout, which hands leads to the Designer, then the Closer, then the brand X account, which sends people to their claim page. Orders go through Whop to Production, Slant 3D and Craftcloud, then to the customer. Hiring books unboxing videos on Terac, Finance tracks the P&amp;L, Ads drives visits, and the CEO directs every agent.</title>
+          <defs>
+            <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+              <path d="M24 0H0V24" fill="none" stroke="rgba(242,238,228,.06)" stroke-width="1" />
+            </pattern>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0L10 5L0 10z" fill="#8f897c" />
+            </marker>
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
+          <rect width="1290" height="760" fill="url(#grid)" />
+
+          <text class="lane" x="16" y="196">FIND · DESIGN · SELL</text>
+          <text class="lane" x="16" y="406">PRINT · SHIP · FILM</text>
+          <text class="lane" x="16" y="616">KEEP THE BOOKS</text>
+
+          <g class="cmds">
+            {cmd.map((c) => <path id={`c-${c.id}`} class="cmd" data-to={c.id} d={c.d} />)}
+          </g>
+
+          <g class="flows">
+            {flowPaths.map((e) => (
+              <g class="flow" data-from={e.from} data-to={e.to}>
+                <path id={e.id} d={e.d} marker-end="url(#arr)" />
+                <text x={e.lx} y={e.ly} text-anchor={e.v ? 'start' : 'middle'}>{e.label}</text>
+              </g>
+            ))}
+          </g>
+
+          <g class="packets">
+            {flowPaths.map((e, i) => [0, 1].map((k) => (
+              <circle r="4" class={`pk ${k ? 'pk2' : ''}`} filter="url(#glow)">
+                <animateMotion dur={`${2.2 + (i % 4) * 0.35}s`} begin={`${(i * 0.37 + k * 1.3) % 2.6}s`} repeatCount="indefinite">
+                  <mpath href={`#${e.id}`} />
+                </animateMotion>
+              </circle>
+            )))}
+            {cmd.map((c, i) => (
+              <circle r="3" class="pk cmdpk">
+                <animateMotion dur="3.4s" begin={`${i * 0.45}s`} repeatCount="indefinite"><mpath href={`#c-${c.id}`} /></animateMotion>
+              </circle>
+            ))}
+          </g>
+
+          <g class="nodes">
+            {nodes.map((n) => (
+              <g class={`node ${n.kind}`} id={`n-${n.id}`} data-id={n.id} transform={`translate(${n.x - W / 2} ${n.y - H / 2})`} tabindex={n.kind === 'bot' ? 0 : undefined}>
+                <rect class="halo" x="-6" y="-6" width={W + 12} height={H + 12} rx="10" />
+                <rect class="box" width={W} height={H} rx="6" />
+                {n.kind === 'bot' && <circle class="live" cx={W - 14} cy="15" r="4" />}
+                <text class="t" x="12" y="30">{n.title}</text>
+                <text class="s" x="12" y="52">{n.sub}</text>
+                {n.chip && <text class="c" x="12" y="76">{n.chip}</text>}
+                {n.kind === 'ext' && <text class="c" x="12" y="76">EXTERNAL</text>}
+              </g>
+            ))}
+          </g>
+        </svg>
+      </div>
+      <div class="log-wrap">
+        <p class="log-h mono">DISPATCH LOG</p>
+        <ol class="log mono" id="log" aria-live="off"></ol>
+      </div>
+    </section>
+
+    <section class="roster" aria-labelledby="roster-h">
+      <h2 id="roster-h">The roster</h2>
+      <ul class="cards" role="list">
+        {bots.map((b) => (
+          <li class="card" data-id={b.id}>
+            <div class="card-top mono"><span class="status"><i class="dot"></i>RUNNING</span><span>{b.engine} · {b.every}</span></div>
+            <h3>{b.name}</h3>
+            <p>{b.does}</p>
+            <ul class="tools mono" role="list">{b.tools.map((t) => <li>{t}()</li>)}</ul>
+          </li>
+        ))}
+      </ul>
+      <p class="humans muted">Three humans (Akshaya, Anush, Vrisag) handle only what bots aren’t allowed to: account logins and pitching in person at Whop HQ. <a href="/live">Watch the agents live →</a></p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .bots { padding-block: 1rem 3rem; display: grid; gap: 2rem; }
+  .kicker { font-size: 0.8125rem; color: var(--red); font-weight: 700; letter-spacing: 0.04em; }
+  .head h1 { font: 900 clamp(3rem, 9vw, 6.5rem)/0.88 var(--display); margin-top: 0.5rem; }
+  .head h1 span { color: var(--red); }
+  .lede { margin-top: 1rem; max-width: 62ch; color: var(--ink-2); }
+  .strip { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; margin-top: 1.5rem; border: 2px solid var(--ink); background: var(--paper-hi); }
+  .strip div { padding: 0.75rem 1rem; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); display: grid; gap: 0.15rem; }
+  .strip b { font-size: clamp(1.4rem, 3.5vw, 2rem); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .strip span { font-size: 0.75rem; color: var(--ink-2); text-transform: uppercase; }
+  @media (min-width: 720px) { .strip { grid-template-columns: repeat(4, 1fr); } .strip div { border-bottom: 0; } .strip div:last-child { border-right: 0; } }
+
+  .board { background: #121212; color: #f2eee4; border: 2px solid var(--ink); box-shadow: 8px 8px 0 var(--red); overflow: hidden; }
+  .board-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem 1.5rem; padding: 0.75rem 1rem; border-bottom: 1px solid #2c2b28; font-size: 0.75rem; letter-spacing: 0.04em; }
+  .legend { display: inline-flex; align-items: center; gap: 0.4rem; color: #a8a297; }
+  .lg { display: inline-block; width: 14px; height: 10px; margin-left: 0.6rem; border-radius: 2px; }
+  .lg.bot { background: #1d1d1d; border: 1.5px solid var(--red); }
+  .lg.ext { border: 1.5px solid #6d685e; }
+  .lg.cmd { height: 0; border-top: 2px dashed var(--red); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #3ddc84; margin-right: 0.45rem; box-shadow: 0 0 0 0 rgba(61,220,132,.6); animation: pulse 1.8s infinite; vertical-align: 1px; }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 7px rgba(61,220,132,0); } 100% { box-shadow: 0 0 0 0 rgba(61,220,132,0); } }
+
+  .scroller { overflow-x: auto; }
+  #diagram { display: block; width: 100%; min-width: 880px; height: auto; }
+  .log-wrap { border-top: 1px solid #2c2b28; padding: 0.75rem 1rem 1rem; }
+  .log-h { font-size: 0.75rem; color: #a8a297; letter-spacing: 0.06em; margin-bottom: 0.4rem; }
+  .log { list-style: none; margin: 0; padding: 0; height: 9.5rem; overflow: hidden; font-size: 0.8125rem; display: flex; flex-direction: column; }
+  .cards { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .card { border: 2px solid var(--ink); background: var(--paper-hi); padding: 1rem; display: grid; gap: 0.5rem; align-content: start; transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+  .card.hot { transform: translate(-3px, -3px); box-shadow: 6px 6px 0 var(--red); }
+  .card-top { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.6875rem; color: var(--ink-2); letter-spacing: 0.03em; }
+  .card h3 { font: 900 2rem/1 var(--display); }
+  .card p { font-size: 0.9375rem; }
+  .tools { list-style: none; padding: 0; margin: 0.25rem 0 0; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+  .tools li { font-size: 0.6875rem; border: 1px solid var(--rule); padding: 0.15rem 0.4rem; }
+  .roster h2 { font: 900 clamp(2rem, 5vw, 3rem)/1 var(--display); }
+  .humans { margin-top: 1.25rem; max-width: 70ch; }
+</style>
+
+<style is:global>
+  #diagram .lane { font: 700 11px var(--mono); fill: #5f5a51; letter-spacing: 0.12em; }
+  #diagram .flow path { fill: none; stroke: #4a4740; stroke-width: 1.5; transition: stroke .3s; }
+  #diagram .flow text { font: 10px var(--mono); fill: #8f897c; letter-spacing: 0.04em; }
+  #diagram .flow.hot path { stroke: #c21f17; stroke-width: 2.5; }
+  #diagram .flow.hot text { fill: #f2eee4; }
+  #diagram .cmd { fill: none; stroke: rgba(194,31,23,.45); stroke-width: 1.25; stroke-dasharray: 5 6; animation: march 1.2s linear infinite; }
+  #diagram .cmd.hot { stroke: #ff3b2f; stroke-width: 2; }
+  @keyframes march { to { stroke-dashoffset: -22; } }
+  #diagram .pk { fill: #f2eee4; }
+  #diagram .pk2 { fill: #ff3b2f; }
+  #diagram .cmdpk { fill: #ff3b2f; opacity: .9; }
+  #diagram .node .box { fill: #1a1a1a; stroke: #6d685e; stroke-width: 1.5; }
+  #diagram .node.bot .box { fill: #1d1d1d; stroke: #c21f17; stroke-width: 2; }
+  #diagram .node.ext .box { stroke-dasharray: 4 3; fill: #141414; }
+  #diagram .node .halo { fill: none; stroke: #ff3b2f; stroke-width: 2; opacity: 0; transition: opacity .3s; }
+  #diagram .node.ping .halo { opacity: 1; animation: halo 1.2s ease-out; }
+  @keyframes halo { from { stroke-width: 8; opacity: .2; } to { stroke-width: 2; opacity: 1; } }
+  #diagram .node .t { font: 800 22px var(--display); fill: #f2eee4; letter-spacing: .01em; }
+  #diagram .node.ext .t { fill: #cfc9bc; font-size: 19px; }
+  #diagram .node .s { font: 11px var(--body); fill: #a8a297; }
+  #diagram .node .c { font: 700 9.5px var(--mono); fill: #c21f17; letter-spacing: .08em; }
+  #diagram .node.ext .c { fill: #5f5a51; }
+  #diagram .node .live { fill: #3ddc84; animation: blink 1.6s infinite; }
+  #diagram .node.bot { cursor: pointer; outline: none; }
+  #diagram .node.bot:focus-visible .halo { opacity: 1; }
+  @keyframes blink { 50% { opacity: .25; } }
+  .log li { display: grid; grid-template-columns: 4.5rem 6.5rem 1fr; gap: 0.75rem; padding: 0.2rem 0; color: #cfc9bc; animation: logIn .45s var(--ease); }
+  .log li:nth-child(n+2) { opacity: .75; } .log li:nth-child(n+4) { opacity: .45; } .log li:nth-child(n+6) { opacity: .2; }
+  .log time { color: #6d685e; }
+  .log .who { color: #ff3b2f; font-weight: 700; }
+  @keyframes logIn { from { transform: translateY(-8px); opacity: 0; background: rgba(194,31,23,.25); } }
+  @media (max-width: 600px) { .log li { grid-template-columns: 3.6rem 5.5rem 1fr; gap: .5rem; font-size: .75rem; } }
+  @media (prefers-reduced-motion: reduce) {
+    #diagram .packets { display: none; }
+    #diagram .cmd, #diagram .node .live, .dot { animation: none; }
+  }
+</style>
+
+<script>
+  import { getStats, dollars, timeLeft, DEFAULT_ENDS_AT } from '../lib/api';
+
+  const $ = (id: string) => document.getElementById(id)!;
+  let endsAt = DEFAULT_ENDS_AT;
+  async function stats() {
+    try {
+      const s = await getStats();
+      endsAt = s.ends_at || endsAt;
+      $('rev').textContent = dollars(s.revenue_cents || 0);
+      $('orders').textContent = String(s.orders ?? 0);
+    } catch { /* keep last */ }
+  }
+  stats(); setInterval(stats, 15_000);
+  const tick = () => ($('left').textContent = timeLeft(endsAt, true));
+  tick(); setInterval(tick, 1000);
+
+  // What each agent does on a normal cycle. Descriptions of the job, no numbers or people.
+  const script: [string, string, string?][] = [
+    ['scout', 'Exa sweep: Show HN, Product Hunt top 5, GitHub star milestones', 'src'],
+    ['designer', 'Milestone Plaque built for a repo that just crossed a star milestone'],
+    ['closer', 'Drafted “we already made yours” with the claim link'],
+    ['scout', 'X breakout: a post running far above its author’s normal', 'src'],
+    ['designer', 'Tweet Trophy rendered from the post’s real words and likes'],
+    ['closer', 'Reply sent under a “drop your startup” thread', 'x'],
+    ['ads', 'Retargeting claim-page visitors who didn’t check out', 'claim'],
+    ['production', 'Paid order → print file generated → placed with Slant 3D', 'supplier'],
+    ['finance', 'P&L posted: revenue, Whop fees, supplier cost, ad spend', 'whop'],
+    ['ceo', 'Hourly review: leads → claims → sales, per source'],
+    ['ceo', 'Reallocated: scout + closer favour the best-converting source'],
+    ['scout', 'New Devpost winners pulled in via Exa', 'src'],
+    ['designer', 'Skipped a lead: not actually a win'],
+    ['production', 'Full-colour order routed to Craftcloud, margin check passed', 'supplier'],
+    ['hiring', 'Terac task drafted: film an unboxing (with consent)', 'terac'],
+    ['ads', 'Killed a campaign over $25 per sale, moved budget to the cheapest', 'claim'],
+    ['closer', 'Email drafted for a LinkedIn launch, opt-out line included'],
+    ['finance', 'Reinvest rule: 20% of revenue unlocked for ads + Terac'],
+    ['production', 'Supplier status synced: printed, packed, label created', 'door'],
+    ['hiring', 'Street-promo shift drafted for a co-working space', 'terac'],
+    ['ceo', 'Status update queued for @trovefactory', 'x'],
+  ];
+
+  const svg = $('diagram');
+  const log = $('log');
+  const cards = [...document.querySelectorAll<HTMLElement>('.card')];
+  const fmt = (d: Date) => d.toLocaleTimeString('en-US', { hour12: false });
+  const names: Record<string, string> = { ceo: 'CEO', scout: 'SCOUT', designer: 'DESIGNER', closer: 'CLOSER', ads: 'ADS', production: 'PRODUCTION', finance: 'FINANCE', hiring: 'HIRING' };
+
+  function light(id: string, extra?: string) {
+    const ids = [id, extra].filter(Boolean) as string[];
+    ids.forEach((i) => {
+      const n = svg.querySelector(`#n-${i}`);
+      if (!n) return;
+      n.classList.remove('ping'); void (n as SVGElement).getBoundingClientRect(); n.classList.add('ping');
+      setTimeout(() => n.classList.remove('ping'), 1800);
+    });
+    svg.querySelectorAll('.flow').forEach((f) => {
+      const a = f.getAttribute('data-from'), b = f.getAttribute('data-to');
+      const on = (a === id && (!extra || b === extra)) || (b === id && a === extra) || (a === id && !extra);
+      f.classList.toggle('hot', !!on && ids.length > 0);
+    });
+    svg.querySelectorAll('.cmd').forEach((c) => c.classList.toggle('hot', id === 'ceo' || c.getAttribute('data-to') === id));
+    cards.forEach((c) => c.classList.toggle('hot', c.dataset.id === id));
+  }
+
+  function push(who: string, text: string) {
+    const li = document.createElement('li');
+    const t = document.createElement('time'); t.textContent = fmt(new Date());
+    const w = document.createElement('span'); w.className = 'who'; w.textContent = names[who] || who.toUpperCase();
+    const x = document.createElement('span'); x.textContent = text;
+    li.append(t, w, x);
+    log.prepend(li);
+    while (log.children.length > 7) log.lastElementChild?.remove();
+  }
+
+  let i = 0;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function step() {
+    const [who, text, extra] = script[i % script.length];
+    push(who, text);
+    light(who, extra);
+    i++;
+  }
+  for (let k = 0; k < 4; k++) step();
+  setInterval(step, reduce ? 4000 : 2200);
+
+  // hover / focus a bot: highlight it and its card
+  svg.querySelectorAll<SVGGElement>('.node.bot').forEach((n) => {
+    const id = n.dataset.id!;
+    const go = () => light(id);
+    n.addEventListener('mouseenter', go);
+    n.addEventListener('focus', go);
+    n.addEventListener('click', () => document.querySelector(`.card[data-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+  });
+</script>

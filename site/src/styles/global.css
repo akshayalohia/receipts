@@ -43,6 +43,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* Nav */
 .nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 64px; }
 .wordmark { font: 700 1.25rem/1 var(--mono); text-decoration: none; letter-spacing: -0.02em; display: inline-flex; align-items: center; min-height: 44px; }
+.navlinks { display: inline-flex; gap: 1.25rem; }
 .nav a.navlink { font: 400 0.9375rem/1 var(--mono); min-height: 44px; display: inline-flex; align-items: center; }
 
 /* Buttons */
