@@ -215,7 +215,7 @@ const faq = [
     document.getElementById('hero-progress')!.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     try {
       hero?.destroy(); hero = null; delete stage.dataset.ready;
-      msg.textContent = 'Sketching your idea…';
+      msg.textContent = q ? 'Looking it up with Exa and sketching your idea…' : 'Sketching your idea…';
       const fd = new FormData();
       if (q) fd.set('prompt', q);
       if (file) fd.set('photo', file);
@@ -223,7 +223,7 @@ const faq = [
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || 'Something went wrong. Try again.');
       conceptImg.src = j.conceptUrl; conceptImg.hidden = false;
-      msg.textContent = 'Sculpting it in 3D…';
+      msg.textContent = j.reference?.notes ? 'Researched with Exa. Sculpting it in 3D…' : 'Sculpting it in 3D…';
       progress.set('mesh');
       for (let i = 0; i < 120; i++) {
         await new Promise((r) => setTimeout(r, 1500));

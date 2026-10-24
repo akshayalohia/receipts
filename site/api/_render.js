@@ -68,24 +68,74 @@ const firstImage = (data) => {
   return url;
 };
 
-export async function makeConcept({ prompt, photoUrl }) {
+// ---------- Exa: real-world visual reference ----------
+// Image models guess at named things ("Pikachu holding the Stanley Cup", "the Whop logo", "Steph Curry's
+// jump shot"). Before sketching, we ask Exa's /answer (web search + cited answer) what those named things
+// really look like and fold that into the image prompt. Generic ideas ("my dog as an astronaut") come
+// back NONE and the prompt is left alone. Hard 4 s budget: on timeout/error we just render without it.
+const EXA_TIMEOUT_MS = Number(process.env.EXA_TIMEOUT_MS || 4000);
+// Tuned on: Pikachu+Stanley Cup, Whop logo, Steph Curry, Eiffel Tower -> facts; my cat as a knight, frog in a
+// cowboy hat, my dog as an astronaut -> NONE (looser wording let Exa invent a "Catnip Knight" character).
+const exaQuery = (p) =>
+  `Visual reference for a sculptor making a figurine of: "${p}". Step 1: list the proper nouns literally written in that ` +
+  `phrase (real people, brands, logos, products, landmarks, fictional characters, sports teams). Common nouns like cat, dog, ` +
+  `knight, astronaut, frog, hat are NOT proper nouns. Step 2: if the list is empty, reply exactly NONE. Otherwise, for each ` +
+  `one only, say what it really looks like: shape, signature features, colours, pose. Under 40 words, no intro, never ` +
+  `mention anything not written in the phrase.`;
+
+export async function exaReference(text) {
+  const p = (text || "").trim().slice(0, 300);
+  if (!p || !process.env.EXA_API_KEY) return null;
+  const t0 = Date.now();
+  try {
+    const res = await fetch("https://api.exa.ai/answer", {
+      method: "POST",
+      headers: { "x-api-key": process.env.EXA_API_KEY, "content-type": "application/json" },
+      body: JSON.stringify({ query: exaQuery(p) }),
+      signal: AbortSignal.timeout(EXA_TIMEOUT_MS),
+    });
+    if (!res.ok) throw new Error(`exa ${res.status}`);
+    const j = await res.json();
+    const notes = String(j?.answer || "").replace(/\s*\[\d+\]/g, "").replace(/\s+/g, " ").trim().slice(0, 400);
+    const ms = Date.now() - t0;
+    if (!notes || /^none\b/i.test(notes)) {
+      console.log("exa", { ms, hit: false });
+      return null;
+    }
+    const seen = new Set();
+    const sources = (j.citations || [])
+      .filter((c) => c?.url && !seen.has(c.url) && seen.add(c.url))
+      .slice(0, 3)
+      .map((c) => ({ title: String(c.title || new URL(c.url).hostname).slice(0, 90), url: c.url }));
+    console.log("exa", { ms, hit: true, sources: sources.length });
+    return { notes, sources, ms };
+  } catch (e) {
+    console.log("exa skipped", String(e?.message || e), Date.now() - t0);
+    return null;
+  }
+}
+
+const withRef = (s, ref) => (ref?.notes ? `${s}. Real-world reference: ${ref.notes}` : s);
+
+export async function makeConcept({ prompt, photoUrl, reference }) {
   const p = (prompt || "").trim().slice(0, 500);
   if (photoUrl) {
+    const base = p ? `${PHOTO_TO_FIGURINE}. ${p}` : PHOTO_TO_FIGURINE;
     const { data } = await fal.subscribe(MODELS.imageEdit, {
-      input: { image_url: photoUrl, prompt: p ? `${PHOTO_TO_FIGURINE}. ${p}` : PHOTO_TO_FIGURINE, safety_tolerance: "2", output_format: "png" },
+      input: { image_url: photoUrl, prompt: withRef(base, reference), safety_tolerance: "2", output_format: "png" },
     });
     return firstImage(data);
   }
   if (!p) throw new Error("need a prompt or a photo");
   const { data } = await fal.subscribe(MODELS.textToImage, {
-    input: { prompt: `${p}. ${PRINT_STYLE}`, image_size: "square_hd", num_inference_steps: 4, enable_safety_checker: true },
+    input: { prompt: `${withRef(p, reference)}. ${PRINT_STYLE}`, image_size: "square_hd", num_inference_steps: 4, enable_safety_checker: true },
   });
   return firstImage(data);
 }
 
-export async function editConcept(conceptUrl, instruction) {
+export async function editConcept(conceptUrl, instruction, reference) {
   const { data } = await fal.subscribe(MODELS.imageEdit, {
-    input: { image_url: conceptUrl, prompt: `${instruction.trim().slice(0, 300)}. Keep it a ${PRINT_STYLE}`, safety_tolerance: "2", output_format: "png" },
+    input: { image_url: conceptUrl, prompt: `${withRef(instruction.trim().slice(0, 300), reference)}. Keep it a ${PRINT_STYLE}`, safety_tolerance: "2", output_format: "png" },
   });
   return firstImage(data);
 }
@@ -302,4 +352,13 @@ export async function cachedGeom(job) {
 }
 export async function saveGeom(job, value) {
   await putJSON(process.env, geomKey(job), value, 30 * 86400);
+}
+
+// Exa research shown on /r ("Researched with Exa" + sources). Keyed by the mesh request id.
+const refKey = (r) => `render-ref:${r}`;
+export async function getReference(job) {
+  return job?.r ? getJSON(process.env, refKey(job.r)) : null;
+}
+export async function saveReference(r, ref) {
+  if (r && ref) await putJSON(process.env, refKey(r), ref, 30 * 86400);
 }

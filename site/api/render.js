@@ -5,7 +5,7 @@
 // vercel.json rewrites /api/render/:id -> /api/render?id=:id
 import { fal } from "@fal-ai/client";
 import { json, error } from "./_lib.js";
-import { decodeJob, editConcept, encodeJob, makeConcept, MODELS, start3d, uploadPhoto, spendGuard, jobStatus, makePreview, allPrices, cachedGeom, saveGeom, SIZES } from "./_render.js";
+import { decodeJob, editConcept, encodeJob, makeConcept, MODELS, start3d, uploadPhoto, spendGuard, jobStatus, makePreview, allPrices, cachedGeom, saveGeom, SIZES, exaReference, getReference, saveReference } from "./_render.js";
 
 const idOf = (request) => new URL(request.url).searchParams.get("id") || "";
 
@@ -32,10 +32,12 @@ async function create(request) {
   const blocked = await spendGuard(request);
   if (blocked) return error(429, blocked);
   try {
-    const photoUrl = photo ? await uploadPhoto(photo) : undefined;
-    const conceptUrl = await makeConcept({ prompt, photoUrl });
+    // Exa lookup runs in parallel with the photo upload, so it adds ~1 s at most.
+    const [photoUrl, reference] = await Promise.all([photo ? uploadPhoto(photo) : undefined, exaReference(prompt)]);
+    const conceptUrl = await makeConcept({ prompt, photoUrl, reference });
     const r = await start3d(conceptUrl);
-    return json({ id: encodeJob({ r, c: conceptUrl, p: prompt || undefined, m: MODELS.imageTo3d }), conceptUrl });
+    await saveReference(r, reference).catch(() => {});
+    return json({ id: encodeJob({ r, c: conceptUrl, p: prompt || undefined, m: MODELS.imageTo3d }), conceptUrl, reference });
   } catch (e) {
     const msg = String(e?.message || e);
     console.error("render failed", msg);
@@ -55,10 +57,14 @@ async function edit(request) {
   if (blocked) return error(429, blocked);
   try {
     const src = job.demo ? new URL(job.c, request.url).toString() : job.c;
-    const conceptUrl = await editConcept(src, instruction);
+    const reference = await exaReference(instruction);
+    const conceptUrl = await editConcept(src, instruction, reference);
     const r = await start3d(conceptUrl);
+    // Keep the original research if the edit itself named nothing new.
+    const kept = reference || (await getReference(job).catch(() => null));
+    await saveReference(r, kept).catch(() => {});
     const p = [job.p, instruction].filter(Boolean).join(" / ").slice(0, 600);
-    return json({ id: encodeJob({ r, c: conceptUrl, p, m: MODELS.imageTo3d }), conceptUrl });
+    return json({ id: encodeJob({ r, c: conceptUrl, p, m: MODELS.imageTo3d }), conceptUrl, reference: kept });
   } catch (e) {
     const blockedMsg = /safety|nsfw|content/i.test(String(e?.message));
     return error(blockedMsg ? 422 : 502, blockedMsg ? "We can't print that change." : "Edit failed, please try again.");
@@ -91,7 +97,8 @@ async function status(request) {
   const id = idOf(request);
   const job = decodeJob(id);
   if (!job) return error(404, "unknown render");
-  const base = { conceptUrl: job.c, prompt: job.p ?? null };
+  const reference = job.demo ? null : await getReference(job).catch(() => null);
+  const base = { conceptUrl: job.c, prompt: job.p ?? null, reference };
   try {
     let rawUrl;
     if (job.demo) rawUrl = "/examples/dog.glb";

@@ -35,6 +35,11 @@ const bases = [
       </div>
       <div id="r-progress" hidden></div>
       <p class="mono small muted" id="prompt-line"></p>
+      <div class="exa-ref" id="exa-ref" hidden>
+        <span class="label">Researched with Exa</span>
+        <p class="small" id="exa-notes"></p>
+        <ul class="mono small" id="exa-sources"></ul>
+      </div>
       <p class="mono small muted">Drag to turn it. Colour and plinth update live. This is the shape we print.</p>
     </div>
 
@@ -131,6 +136,10 @@ const bases = [
   .ship { display: grid; gap: 0.75rem; }
   .row3 { display: grid; grid-template-columns: 2fr 1fr 1.3fr; gap: 0.5rem; }
   .pay { min-height: 56px; font-size: 1.05rem; }
+  .exa-ref { border: 2px dashed var(--ink); padding: 0.75rem 1rem; margin-block: 0.75rem; display: grid; gap: 0.35rem; }
+  .exa-ref p { margin: 0; }
+  .exa-ref ul { margin: 0; padding-left: 1.1rem; }
+  .exa-ref a { color: inherit; overflow-wrap: anywhere; }
 </style>
 
 <script>
@@ -191,12 +200,25 @@ const bases = [
   const handoff = readHandoff(id);
   const progress = mountRenderProgress($('r-progress'), handoff || {});
 
+  // Exa looked up the named things in the idea before sketching; show what it found and where (text only, web data).
+  function showReference(ref: { notes: string; sources?: { title: string; url: string }[] }) {
+    $('exa-notes').textContent = ref.notes;
+    const ul = $('exa-sources'); ul.replaceChildren();
+    for (const src of (ref.sources || []).slice(0, 3)) {
+      if (!/^https?:\/\//.test(src.url)) continue;
+      const a = document.createElement('a'); a.href = src.url; a.target = '_blank'; a.rel = 'noopener nofollow'; a.textContent = src.title || src.url;
+      const li = document.createElement('li'); li.append(a); ul.append(li);
+    }
+    $('exa-ref').hidden = false;
+  }
+
   async function poll() {
     if (!id) { $('stage-msg').textContent = 'No model here. Start one on the home page.'; return; }
     for (let i = 0; i < 160; i++) {
       const s = await fetch(`/api/render/${encodeURIComponent(id)}`).then((r) => r.json()).catch(() => null);
       if (s?.conceptUrl && !state.ready) { const img = $<HTMLImageElement>('concept'); img.src = s.conceptUrl; img.hidden = false; }
       if (s?.prompt) $('prompt-line').textContent = `“${s.prompt}”`;
+      if (s?.reference?.notes && $('exa-ref').hidden) showReference(s.reference);
       if (s?.state === 'done') {
         state.prices = s.prices || {};
         progress.set('preview');
