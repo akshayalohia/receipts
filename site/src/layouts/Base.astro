@@ -16,13 +16,16 @@ interface Props {
   ogImage?: string;
   noindex?: boolean;
 }
+const SITE = 'https://trovefactory.shop';
 const tagline = 'We 3D print your receipts.';
 const {
-  title = `receipts · ${tagline}`,
+  title = `Trove · ${tagline}`,
   description = "Your viral tweet. Your first $10k month. Your 10,000th subscriber. Paste it in, turn it around in 3D, and we'll ship it to your desk.",
   ogImage = '/og.png',
   noindex = false,
 } = Astro.props;
+const canonical = new URL(Astro.url.pathname, SITE).href;
+const ogImageUrl = new URL(ogImage, SITE).href;
 ---
 <!doctype html>
 <html lang="en">
@@ -35,14 +38,16 @@ const {
     {noindex && <meta name="robots" content="noindex" />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="receipts" />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:site_name" content="Trove" />
+    <meta property="og:url" content={canonical} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content={ogImage} />
+    <meta property="og:image" content={ogImageUrl} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image" content={ogImageUrl} />
     <slot name="head" />
   </head>
   <body>

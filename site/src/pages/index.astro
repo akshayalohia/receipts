@@ -244,10 +244,10 @@ const faq = [
 
   // Product shelf: render each object once with snapshot(), one at a time, then free the GL context.
   const samples: Record<string, PreviewParams> = {
-    tweet: { product: 'tweet', colour: 'black', author_name: 'receipts', handle: 'receipts', text: 'We 3D print your receipts.' },
+    tweet: { product: 'tweet', colour: 'black', author_name: 'Trove', handle: 'trovefactory', text: 'We 3D print your receipts.' },
     milestone: { product: 'milestone', colour: 'gold', number: '$10,000', label: 'MRR' },
-    fullcolour: { product: 'fullcolour', colour: 'white', name: 'receipts' },
-    team: { product: 'team', colour: 'blue', team: 'receipts', subline: 'Zero-Human Hackathon 2026' },
+    fullcolour: { product: 'fullcolour', colour: 'white', name: 'Trove' },
+    team: { product: 'team', colour: 'blue', team: 'Trove', subline: 'Zero-Human Hackathon 2026' },
   };
   async function renderShelf() {
     const mod = await loadPreview();

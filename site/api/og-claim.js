@@ -55,7 +55,7 @@ export function slugFrom(request) {
 export function personalise(html, claim, origin) {
   let out = html;
   if (claim.handle) {
-    const title = `receipts · @${String(claim.handle).replace(/^@/, "")}, this one's yours`;
+    const title = `Trove · @${String(claim.handle).replace(/^@/, "")}, this one's yours`;
     out = setMeta(out, "property", "og:title", title);
     out = setMeta(out, "name", "twitter:title", title);
   }

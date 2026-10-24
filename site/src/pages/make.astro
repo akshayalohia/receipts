@@ -18,7 +18,7 @@ const colours = [
   { key: 'gold', name: 'Gold', hex: '#c9a227' },
 ];
 ---
-<Base title="receipts · Make it yours">
+<Base title="Trove · Make it yours">
   <div class="wrap make" id="make">
     <section class="blk blk-a" aria-labelledby="s1">
       <h2 id="s1"><span class="n">1</span> What are we printing</h2>
@@ -303,7 +303,7 @@ const colours = [
       const blob = await preview.snapshot();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `receipts-${state.product}.png`;
+      a.download = `trove-${state.product}.png`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -319,7 +319,7 @@ const colours = [
   function lines(): Line[] {
     const p = productByKey(state.product)!;
     const out: Line[] = [
-      { k: 'head', l: 'receipts', cls: 'r-head' },
+      { k: 'head', l: 'Trove', cls: 'r-head' },
       { k: 'ref', l: 'REF', r: orderRef },
       { k: 'when', l: 'DATE', r: startedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) },
       { k: 's1', sep: true },

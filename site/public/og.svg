@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <rect width="1200" height="630" fill="#f2eee4"/>
-  <text x="80" y="140" font-family="DejaVu Sans Mono, monospace" font-weight="700" font-size="44" fill="#151515">receipts</text>
-  <text x="80" y="330" font-family="DejaVu Sans Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="104" fill="#151515">We 3D print</text>
-  <text x="80" y="450" font-family="DejaVu Sans Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="104" fill="#151515">your receipts.</text>
+  <text x="80" y="140" font-family="DejaVu Sans Mono, monospace" font-weight="700" font-size="44" fill="#151515">Trove</text>
+  <text x="80" y="330" font-family="DejaVu Sans Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="92" fill="#151515">We 3D print</text>
+  <text x="80" y="450" font-family="DejaVu Sans Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="92" fill="#151515">your receipts.</text>
   <rect x="80" y="510" width="220" height="10" fill="#c21f17"/>
   <g transform="translate(860 70)">
     <path d="M0 0h260v470l-13 -10 -13 10 -13 -10 -13 10 -13 -10 -13 10 -13 -10 -13 10 -13 -10 -13 10 -13 -10 -13 10 -13 -10 -13 10 -13 -10 -13 10 -13 -10 -13 10 -13 -10 -13 10z" fill="#fbf9f4" stroke="#151515" stroke-width="3"/>
     <g font-family="DejaVu Sans Mono, monospace" font-size="20" fill="#151515">
-      <text x="130" y="50" text-anchor="middle" font-weight="700">receipts</text>
+      <text x="130" y="50" text-anchor="middle" font-weight="700">Trove</text>
       <line x1="20" y1="80" x2="240" y2="80" stroke="#151515" stroke-dasharray="6 6"/>
       <text x="20" y="120">TWEET TROPHY</text><text x="240" y="120" text-anchor="end">$29</text>
       <text x="20" y="160">MILESTONE</text><text x="240" y="160" text-anchor="end">$49</text>

@@ -4,7 +4,7 @@ import Base from '../../layouts/Base.astro';
 // og:image here is the static fallback; crawlers don't run JS, so the per-slug image
 // /api/claim/<slug>/og.png needs an HTML rewrite in a Function. TODO(og): SITE-FN.
 ---
-<Base title="receipts · this one's yours" noindex>
+<Base title="Trove · this one's yours" noindex>
   <section class="wrap claim" id="claim" data-state="loading">
     <div class="claim-copy">
       <h1 id="claim-h">@<span data-f="handle"></span>, this one's yours.</h1>
@@ -14,14 +14,14 @@ import Base from '../../layouts/Base.astro';
         <a class="btn" id="gift-it" href="/make">Gift it to them</a>
       </div>
       <p class="gift-sub">Know them? Send it to them as a gift. We'll ship it with a card that says who it's from.</p>
-      <p class="mono small muted">Made by the AI agents at receipts. Not affiliated with X.</p>
+      <p class="mono small muted">Made by the AI agents at Trove. Not affiliated with X.</p>
     </div>
     <div class="claim-object">
       <div class="stage" id="stage"><div class="stage-empty">Loading preview…</div></div>
       <p class="mono small muted">Drag to turn it. A preview of your design: the print is one solid colour, and fine details may be simplified.</p>
     </div>
     <div class="claim-missing">
-      <p class="mono">404. We couldn't find that receipt. It may have expired.</p>
+      <p class="mono">404. We couldn't find that trophy. It may have expired.</p>
       <a class="btn btn-primary" href="/make">Make mine</a>
     </div>
   </section>
@@ -57,7 +57,7 @@ import Base from '../../layouts/Base.astro';
       const price = c.price_cents || productByKey(c.product)?.price_cents || 0;
       fill('handle', handle);
       fill('price', dollars(price));
-      document.title = `receipts · @${handle}, this one's yours.`;
+      document.title = `Trove · @${handle}, this one's yours.`;
       const base = `/make?product=${c.product}&claim=${encodeURIComponent(slug)}`;
       const utm = new URLSearchParams(location.search);
       const extra = [...utm].filter(([k]) => k.startsWith('utm_')).map(([k, v]) => `&${k}=${encodeURIComponent(v)}`).join('');
