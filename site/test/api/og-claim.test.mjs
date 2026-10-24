@@ -22,7 +22,7 @@ test("GET /c/<slug>: per-slug og:title/og:image, html-escaped", async () => {
   const html = await res.text();
   assert.ok(html.includes('<meta property="og:image" content="https://receipts.test/api/claim/jack-first/og.png">'));
   assert.ok(html.includes('<meta name="twitter:image" content="https://receipts.test/api/claim/jack-first/og.png">'));
-  assert.ok(html.includes('<meta property="og:title" content="receipts · @jack&quot;&lt;x&gt;, this one\'s yours">'));
+  assert.ok(html.includes('<meta property="og:title" content="Trove · @jack&quot;&lt;x&gt;, this one\'s yours">'));
   assert.ok(!html.includes('jack"<x>'));
 });
 
